@@ -32,6 +32,8 @@ export class OpenAIRealtimeService {
     onTranscription?: (text: string, isUser: boolean) => void;
     onStatusChange?: (status: string, error?: string) => void;
     onVolumeChange?: (volume: number) => void;
+    onTimeWarning?: () => void;
+    onTimeExceeded?: () => void;
     delayMicUntilGreeting?: boolean;
   }) {
     try {
@@ -122,6 +124,18 @@ export class OpenAIRealtimeService {
 
           case "proxy.error": {
             config.onStatusChange?.("error", msg.error || "Proxy error");
+            break;
+          }
+
+          case "proxy.time_warning": {
+            console.log(`[OpenAI] Time warning: ${msg.remainingSeconds}s remaining`);
+            config.onTimeWarning?.();
+            break;
+          }
+
+          case "proxy.time_exceeded": {
+            console.log(`[OpenAI] Time limit exceeded after ${msg.durationSeconds}s`);
+            config.onTimeExceeded?.();
             break;
           }
 

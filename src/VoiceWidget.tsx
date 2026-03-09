@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Phone, Bot, Loader2, ExternalLink, Mail, Copy, CheckCheck, ChevronDown } from "lucide-react";
+import { Phone, Bot, Loader2, ExternalLink, Mail, Copy, CheckCheck, ChevronDown, AlertTriangle } from "lucide-react";
 import { OpenAIRealtimeService } from "./services/OpenAIRealtimeService";
+import { VapiService } from "./services/VapiService";
 import KNOWLEDGE_BASE from "./knowledge-base.txt?raw";
 
 // ─── Configuration ──────────────────────────────────────────────────────────
@@ -160,6 +161,28 @@ function renderTextWithLinks(text: string): React.ReactNode {
   });
 }
 
+// ─── Server Config Types ────────────────────────────────────────────────────
+
+interface ServerConfig {
+  provider: "openai" | "vapi";
+  maxCallDurationSeconds: number;
+  warningBeforeEndSeconds: number;
+  dailyBudgetUsd: number | null;
+  dailyCostUsd: number;
+  budgetExceeded: boolean;
+  vapiPublicKey?: string;
+  vapiAssistantId?: string;
+}
+
+const DEFAULT_CONFIG: ServerConfig = {
+  provider: "openai",
+  maxCallDurationSeconds: 300,
+  warningBeforeEndSeconds: 30,
+  dailyBudgetUsd: null,
+  dailyCostUsd: 0,
+  budgetExceeded: false,
+};
+
 // ─── Widget Component ───────────────────────────────────────────────────────
 
 export default function VoiceWidget() {
@@ -168,63 +191,169 @@ export default function VoiceWidget() {
   const [volume, setVolume] = useState(0);
   const [emailCopied, setEmailCopied] = useState(false);
   const [emailExpanded, setEmailExpanded] = useState(false);
-  const serviceRef = React.useRef<OpenAIRealtimeService | null>(null);
-  const endingRef = React.useRef(false);
+  const [timeWarning, setTimeWarning] = useState(false);
+  const [budgetExceeded, setBudgetExceeded] = useState(false);
 
-  const getService = () => {
-    if (!serviceRef.current) serviceRef.current = new OpenAIRealtimeService();
-    return serviceRef.current;
+  const openaiServiceRef = React.useRef<OpenAIRealtimeService | null>(null);
+  const vapiServiceRef = React.useRef<VapiService | null>(null);
+  const endingRef = React.useRef(false);
+  const configRef = React.useRef<ServerConfig>(DEFAULT_CONFIG);
+  const autoEndTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const warningTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const getOpenAIService = () => {
+    if (!openaiServiceRef.current) openaiServiceRef.current = new OpenAIRealtimeService();
+    return openaiServiceRef.current;
+  };
+
+  const getVapiService = () => {
+    if (!vapiServiceRef.current) vapiServiceRef.current = new VapiService();
+    return vapiServiceRef.current;
+  };
+
+  const fetchConfig = async (): Promise<ServerConfig> => {
+    try {
+      const res = await fetch("/api/config");
+      const data = await res.json();
+      configRef.current = data;
+      return data;
+    } catch (e) {
+      console.warn("[VoiceWidget] Failed to fetch config, using defaults");
+      return DEFAULT_CONFIG;
+    }
+  };
+
+  const clearTimers = () => {
+    if (autoEndTimerRef.current) { clearTimeout(autoEndTimerRef.current); autoEndTimerRef.current = null; }
+    if (warningTimerRef.current) { clearTimeout(warningTimerRef.current); warningTimerRef.current = null; }
+    setTimeWarning(false);
+  };
+
+  const startTimers = (config: ServerConfig) => {
+    clearTimers();
+    const maxMs = config.maxCallDurationSeconds * 1000;
+    const warnMs = (config.maxCallDurationSeconds - config.warningBeforeEndSeconds) * 1000;
+
+    // Warning timer
+    if (warnMs > 0) {
+      warningTimerRef.current = setTimeout(() => {
+        setTimeWarning(true);
+      }, warnMs);
+    }
+
+    // Auto-end timer (client-side backup — server also enforces)
+    autoEndTimerRef.current = setTimeout(() => {
+      console.log("[VoiceWidget] Max call duration reached. Auto-ending call.");
+      endCall();
+    }, maxMs + 2000); // +2s grace for server to close first
   };
 
   const startCall = async () => {
     endingRef.current = false;
     setCallState("connecting");
     setTranscription([]);
-    const service = getService();
+    setTimeWarning(false);
+
+    const config = await fetchConfig();
+
+    if (config.budgetExceeded) {
+      setBudgetExceeded(true);
+      setCallState("idle");
+      return;
+    }
 
     try {
-      await service.initializeAudio();
+      if (config.provider === "vapi" && config.vapiPublicKey && config.vapiAssistantId) {
+        // --- VAPI Mode ---
+        const service = getVapiService();
+        await service.initializeAudio();
+        await service.connect({
+          vapiPublicKey: config.vapiPublicKey,
+          vapiAssistantId: config.vapiAssistantId,
+          onStatusChange: (s, err) => {
+            if (endingRef.current) return;
+            if (s === "connected") {
+              setCallState("connected");
+              startTimers(config);
+            } else if (s === "error" || s === "disconnected") {
+              setCallState("idle");
+              clearTimers();
+              if (err) console.error("[VoiceWidget] VAPI Error:", err);
+            }
+          },
+          onTranscription: (text, isUser) => {
+            setTranscription((prev) => [...prev, { text, isUser }].slice(-6));
+          },
+          onVolumeChange: (v) => setVolume(v),
+        });
+      } else {
+        // --- OpenAI Realtime Mode ---
+        const service = getOpenAIService();
+        await service.initializeAudio();
 
-      const now = new Date();
-      const dateString = now.toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
-      const timeString = now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", timeZoneName: "short" });
+        const now = new Date();
+        const dateString = now.toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+        const timeString = now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", timeZoneName: "short" });
 
-      const fullInstruction = `${SYSTEM_INSTRUCTION}\n\nToday: ${dateString}, ${timeString}.`;
+        const fullInstruction = `${SYSTEM_INSTRUCTION}\n\nToday: ${dateString}, ${timeString}.`;
 
-      await service.connect({
-        systemInstruction: fullInstruction,
-        voiceName: VOICE_NAME,
-        openaiModel: OPENAI_MODEL,
-        transcriptionLanguage: "en",
-        onStatusChange: (s, err) => {
-          if (endingRef.current) return;
-          if (s === "connected") setCallState("connected");
-          else if (s === "error" || s === "disconnected") {
-            setCallState("idle");
-            if (err) console.error("[VoiceWidget] Error:", err);
-          }
-        },
-        onTranscription: (text, isUser) => {
-          setTranscription((prev) => [...prev, { text, isUser }].slice(-6));
-        },
-        onVolumeChange: (v) => setVolume(v),
-      });
+        await service.connect({
+          systemInstruction: fullInstruction,
+          voiceName: VOICE_NAME,
+          openaiModel: OPENAI_MODEL,
+          transcriptionLanguage: "en",
+          onStatusChange: (s, err) => {
+            if (endingRef.current) return;
+            if (s === "connected") {
+              setCallState("connected");
+              startTimers(config);
+            } else if (s === "error" || s === "disconnected") {
+              setCallState("idle");
+              clearTimers();
+              if (err) console.error("[VoiceWidget] Error:", err);
+            }
+          },
+          onTranscription: (text, isUser) => {
+            setTranscription((prev) => [...prev, { text, isUser }].slice(-6));
+          },
+          onVolumeChange: (v) => setVolume(v),
+          onTimeWarning: () => {
+            setTimeWarning(true);
+          },
+          onTimeExceeded: () => {
+            endCall();
+          },
+        });
+      }
     } catch (err: any) {
       console.error("[VoiceWidget] Failed:", err);
       setCallState("idle");
+      clearTimers();
     }
   };
 
   const endCall = async () => {
     endingRef.current = true;
-    const service = getService();
-    await service.disconnect();
+    clearTimers();
+
+    const config = configRef.current;
+    if (config.provider === "vapi") {
+      await getVapiService().disconnect();
+    } else {
+      await getOpenAIService().disconnect();
+    }
+
     setVolume(0);
     setCallState("idle");
     setTranscription([]);
+    setTimeWarning(false);
   };
 
   const handleClick = () => {
+    if (budgetExceeded) {
+      setBudgetExceeded(false);
+      return;
+    }
     if (callState === "idle") startCall();
     else if (callState === "connected") endCall();
   };
@@ -248,6 +377,10 @@ export default function VoiceWidget() {
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [isActive]);
+
+  const maxDuration = configRef.current.maxCallDurationSeconds;
+  const remaining = Math.max(0, maxDuration - elapsed);
+
   const formatTime = (s: number) =>
     `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
 
@@ -282,6 +415,30 @@ export default function VoiceWidget() {
 
   return (
     <>
+      {/* Budget exceeded notice */}
+      <AnimatePresence>
+        {budgetExceeded && !inCall && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="voice-widget-window"
+            style={{ textAlign: "center", padding: "24px 16px" }}
+          >
+            <AlertTriangle size={32} color="#f59e0b" style={{ margin: "0 auto 12px" }} />
+            <p style={{ color: "#fff", fontSize: "14px", fontWeight: 600, marginBottom: "8px" }}>
+              Daily budget reached
+            </p>
+            <p style={{ color: "#a3a3a3", fontSize: "12px", marginBottom: "16px" }}>
+              Voice calls are paused until tomorrow to manage costs.
+            </p>
+            <button onClick={() => setBudgetExceeded(false)} className="voice-widget-end-btn" style={{ background: "#525252" }}>
+              Dismiss
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Call window */}
       <AnimatePresence>
         {inCall && (
@@ -298,8 +455,24 @@ export default function VoiceWidget() {
                 <div className={`voice-widget-dot ${isActive ? "active" : "connecting"}`} />
                 <span className="voice-widget-status">{isConnecting ? "Connecting..." : "Live Call"}</span>
               </div>
-              {isActive && <span className="voice-widget-timer">{formatTime(elapsed)}</span>}
+              {isActive && (
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span className="voice-widget-timer">{formatTime(elapsed)}</span>
+                  <span style={{ color: "#525252", fontSize: "10px" }}>/</span>
+                  <span className={`voice-widget-timer ${timeWarning ? "warning" : ""}`}>
+                    {formatTime(remaining)}
+                  </span>
+                </div>
+              )}
             </div>
+
+            {/* Time warning banner */}
+            {timeWarning && isActive && (
+              <div className="voice-widget-time-warning">
+                <AlertTriangle size={12} />
+                <span>Call ending in {formatTime(remaining)}</span>
+              </div>
+            )}
 
             {/* Avatar + voice visualization */}
             <div className="voice-widget-avatar-section">
@@ -423,7 +596,7 @@ export default function VoiceWidget() {
       </AnimatePresence>
 
       {/* FAB button */}
-      {!inCall && (
+      {!inCall && !budgetExceeded && (
         <motion.button
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}

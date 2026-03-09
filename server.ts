@@ -3,18 +3,301 @@ import { createServer } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import dotenv from "dotenv";
 import path from "path";
+import fs from "fs";
 
 dotenv.config({ path: ".env.local" });
 
 const app = express();
 const PORT = parseInt(process.env.PORT || "3000");
 
+// --- Configuration ---
+const VOICE_PROVIDER = (process.env.VOICE_PROVIDER || "openai") as "openai" | "vapi";
+const MAX_CALL_DURATION_SECONDS = parseInt(process.env.MAX_CALL_DURATION_SECONDS || "300"); // 5 min default
+const DAILY_BUDGET_USD = parseFloat(process.env.DAILY_BUDGET_USD || "0"); // 0 = unlimited
+const WARNING_BEFORE_END_SECONDS = 30;
+
+// Cost per minute estimates (configurable via env)
+const COST_RATES: Record<string, number> = {
+  "gpt-4o-realtime-preview": parseFloat(process.env.COST_PER_MIN_REALTIME || "0.30"),
+  "gpt-4o-mini-realtime-preview": parseFloat(process.env.COST_PER_MIN_MINI || "0.05"),
+  vapi: parseFloat(process.env.COST_PER_MIN_VAPI || "0.07"),
+};
+
+// --- Cost Tracker ---
+const DATA_DIR = path.join(import.meta.dirname, "data");
+const COST_FILE = path.join(DATA_DIR, "cost-tracker.json");
+
+interface CallSession {
+  id: string;
+  startTime: string;
+  endTime: string | null;
+  durationSeconds: number;
+  model: string;
+  provider: "openai" | "vapi";
+  estimatedCostUsd: number;
+}
+
+interface DailyData {
+  totalCostUsd: number;
+  totalDurationSeconds: number;
+  totalCalls: number;
+  sessions: CallSession[];
+}
+
+interface CostData {
+  [date: string]: DailyData;
+}
+
+function loadCostData(): CostData {
+  try {
+    if (fs.existsSync(COST_FILE)) {
+      return JSON.parse(fs.readFileSync(COST_FILE, "utf-8"));
+    }
+  } catch (e) {
+    console.error("[CostTracker] Failed to load cost data:", e);
+  }
+  return {};
+}
+
+function saveCostData(data: CostData) {
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    fs.writeFileSync(COST_FILE, JSON.stringify(data, null, 2));
+  } catch (e) {
+    console.error("[CostTracker] Failed to save cost data:", e);
+  }
+}
+
+function getToday(): string {
+  return new Date().toISOString().split("T")[0];
+}
+
+function getTodayCost(): number {
+  const data = loadCostData();
+  return data[getToday()]?.totalCostUsd || 0;
+}
+
+function recordSession(session: CallSession) {
+  const data = loadCostData();
+  const date = session.startTime.split("T")[0];
+
+  if (!data[date]) {
+    data[date] = { totalCostUsd: 0, totalDurationSeconds: 0, totalCalls: 0, sessions: [] };
+  }
+
+  data[date].sessions.push(session);
+  data[date].totalCalls += 1;
+  data[date].totalDurationSeconds += session.durationSeconds;
+  data[date].totalCostUsd += session.estimatedCostUsd;
+
+  // Round to avoid floating point drift
+  data[date].totalCostUsd = Math.round(data[date].totalCostUsd * 10000) / 10000;
+
+  saveCostData(data);
+  console.log(
+    `[CostTracker] Session recorded: ${session.durationSeconds}s, $${session.estimatedCostUsd.toFixed(4)} (${session.provider}/${session.model})`
+  );
+}
+
+function isDailyBudgetExceeded(): boolean {
+  if (DAILY_BUDGET_USD <= 0) return false;
+  return getTodayCost() >= DAILY_BUDGET_USD;
+}
+
 // --- Serve static files (production build) ---
 app.use(express.static(path.join(import.meta.dirname, "dist")));
+app.use(express.json());
 
-// --- Health check ---
+// --- API Endpoints ---
+
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok" });
+});
+
+// Returns provider config + limits for the frontend
+app.get("/api/config", (_req, res) => {
+  res.json({
+    provider: VOICE_PROVIDER,
+    maxCallDurationSeconds: MAX_CALL_DURATION_SECONDS,
+    warningBeforeEndSeconds: WARNING_BEFORE_END_SECONDS,
+    dailyBudgetUsd: DAILY_BUDGET_USD || null,
+    dailyCostUsd: getTodayCost(),
+    budgetExceeded: isDailyBudgetExceeded(),
+    // VAPI public key is safe to expose to frontend
+    vapiPublicKey: VOICE_PROVIDER === "vapi" ? (process.env.VAPI_API_KEY || "") : undefined,
+    vapiAssistantId: VOICE_PROVIDER === "vapi" ? (process.env.VAPI_ASSISTANT_ID || "") : undefined,
+  });
+});
+
+// Returns daily cost data
+app.get("/api/costs", (_req, res) => {
+  const data = loadCostData();
+  // Return last 30 days
+  const days = Object.keys(data).sort().slice(-30);
+  const result: Record<string, DailyData> = {};
+  for (const day of days) {
+    const { sessions, ...summary } = data[day];
+    (result as any)[day] = { ...summary, sessionCount: sessions.length };
+  }
+  res.json(result);
+});
+
+app.get("/api/costs/today", (_req, res) => {
+  const data = loadCostData();
+  const today = getToday();
+  const todayData = data[today] || { totalCostUsd: 0, totalDurationSeconds: 0, totalCalls: 0 };
+  res.json({
+    date: today,
+    totalCostUsd: todayData.totalCostUsd,
+    totalDurationSeconds: todayData.totalDurationSeconds,
+    totalCalls: todayData.totalCalls,
+    dailyBudgetUsd: DAILY_BUDGET_USD || null,
+    budgetExceeded: isDailyBudgetExceeded(),
+  });
+});
+
+// --- Cost Dashboard (admin page) ---
+app.get("/admin/costs", (_req, res) => {
+  const data = loadCostData();
+  const today = getToday();
+  const days = Object.keys(data).sort().reverse().slice(0, 30);
+  const todayData = data[today] || { totalCostUsd: 0, totalDurationSeconds: 0, totalCalls: 0, sessions: [] };
+
+  const fmtDuration = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return m > 0 ? `${m}m ${sec}s` : `${sec}s`;
+  };
+
+  const dailyRows = days.map((day) => {
+    const d = data[day];
+    return `<tr>
+      <td>${day}${day === today ? " (today)" : ""}</td>
+      <td>${d.totalCalls}</td>
+      <td>${fmtDuration(d.totalDurationSeconds)}</td>
+      <td>$${d.totalCostUsd.toFixed(4)}</td>
+    </tr>`;
+  }).join("\n");
+
+  const sessionRows = todayData.sessions?.map((s: CallSession) => {
+    const start = new Date(s.startTime).toLocaleTimeString();
+    return `<tr>
+      <td>${start}</td>
+      <td>${s.provider}</td>
+      <td>${s.model}</td>
+      <td>${fmtDuration(s.durationSeconds)}</td>
+      <td>$${s.estimatedCostUsd.toFixed(4)}</td>
+    </tr>`;
+  }).join("\n") || '<tr><td colspan="5" style="text-align:center;color:#888">No calls today</td></tr>';
+
+  const totalAllTime = days.reduce((sum, d) => sum + (data[d]?.totalCostUsd || 0), 0);
+  const budgetBar = DAILY_BUDGET_USD > 0
+    ? `<div style="margin:16px 0">
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+          <span>Daily Budget</span>
+          <span>$${todayData.totalCostUsd.toFixed(2)} / $${DAILY_BUDGET_USD.toFixed(2)}</span>
+        </div>
+        <div style="background:#333;border-radius:8px;height:12px;overflow:hidden">
+          <div style="background:${todayData.totalCostUsd >= DAILY_BUDGET_USD ? '#ef4444' : '#4ade80'};height:100%;width:${Math.min(100, (todayData.totalCostUsd / DAILY_BUDGET_USD) * 100)}%;border-radius:8px;transition:width 0.3s"></div>
+        </div>
+       </div>`
+    : '<p style="color:#888;font-size:13px">No daily budget set (unlimited)</p>';
+
+  res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voice Agent — Cost Dashboard</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: "Inter", system-ui, sans-serif; background: #0a0a0a; color: #e5e5e5; padding: 32px; }
+    h1 { font-size: 22px; margin-bottom: 8px; }
+    h2 { font-size: 16px; color: #a3a3a3; margin: 24px 0 12px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
+    .subtitle { color: #737373; font-size: 14px; margin-bottom: 24px; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .card { background: #171717; border: 1px solid #262626; border-radius: 12px; padding: 16px; }
+    .card .label { font-size: 11px; color: #737373; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+    .card .value { font-size: 24px; font-weight: 700; }
+    .card .value.green { color: #4ade80; }
+    .card .value.amber { color: #f59e0b; }
+    .card .value.purple { color: #c084fc; }
+    table { width: 100%; border-collapse: collapse; background: #171717; border: 1px solid #262626; border-radius: 12px; overflow: hidden; }
+    th { text-align: left; padding: 10px 16px; font-size: 11px; color: #737373; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #262626; background: #1a1a1a; }
+    td { padding: 10px 16px; font-size: 13px; border-bottom: 1px solid #1f1f1f; }
+    tr:last-child td { border-bottom: none; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+    .badge.openai { background: rgba(16,185,129,0.15); color: #34d399; }
+    .badge.vapi { background: rgba(192,132,252,0.15); color: #c084fc; }
+    .config-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; }
+    .config-item { background: #171717; border: 1px solid #262626; border-radius: 8px; padding: 12px 16px; font-size: 13px; }
+    .config-item .key { color: #737373; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .config-item .val { margin-top: 2px; font-weight: 600; }
+    .refresh-note { color: #525252; font-size: 12px; margin-top: 24px; text-align: center; }
+  </style>
+</head>
+<body>
+  <h1>Voice Agent Cost Dashboard</h1>
+  <p class="subtitle">Vizuara AI Labs — Real-time cost tracking</p>
+
+  <div class="cards">
+    <div class="card">
+      <div class="label">Today's Cost</div>
+      <div class="value amber">$${todayData.totalCostUsd.toFixed(2)}</div>
+    </div>
+    <div class="card">
+      <div class="label">Today's Calls</div>
+      <div class="value">${todayData.totalCalls}</div>
+    </div>
+    <div class="card">
+      <div class="label">Today's Duration</div>
+      <div class="value">${fmtDuration(todayData.totalDurationSeconds)}</div>
+    </div>
+    <div class="card">
+      <div class="label">All-Time Tracked</div>
+      <div class="value purple">$${totalAllTime.toFixed(2)}</div>
+    </div>
+  </div>
+
+  ${budgetBar}
+
+  <h2>Current Configuration</h2>
+  <div class="config-grid">
+    <div class="config-item">
+      <div class="key">Voice Provider</div>
+      <div class="val"><span class="badge ${VOICE_PROVIDER}">${VOICE_PROVIDER.toUpperCase()}</span></div>
+    </div>
+    <div class="config-item">
+      <div class="key">Max Call Duration</div>
+      <div class="val">${fmtDuration(MAX_CALL_DURATION_SECONDS)}</div>
+    </div>
+    <div class="config-item">
+      <div class="key">Daily Budget</div>
+      <div class="val">${DAILY_BUDGET_USD > 0 ? "$" + DAILY_BUDGET_USD.toFixed(2) : "Unlimited"}</div>
+    </div>
+    <div class="config-item">
+      <div class="key">Cost Rate (per min)</div>
+      <div class="val">$${(COST_RATES[VOICE_PROVIDER === "vapi" ? "vapi" : "gpt-4o-realtime-preview"] || 0).toFixed(2)}</div>
+    </div>
+  </div>
+
+  <h2>Today's Sessions</h2>
+  <table>
+    <thead><tr><th>Time</th><th>Provider</th><th>Model</th><th>Duration</th><th>Est. Cost</th></tr></thead>
+    <tbody>${sessionRows}</tbody>
+  </table>
+
+  <h2>Daily History (Last 30 Days)</h2>
+  <table>
+    <thead><tr><th>Date</th><th>Calls</th><th>Total Duration</th><th>Est. Cost</th></tr></thead>
+    <tbody>${dailyRows || '<tr><td colspan="4" style="text-align:center;color:#888">No data yet</td></tr>'}</tbody>
+  </table>
+
+  <p class="refresh-note">Refresh the page to update. Data stored in data/cost-tracker.json on the server.</p>
+</body>
+</html>`);
 });
 
 // --- SPA fallback ---
@@ -36,8 +319,20 @@ httpServer.on("upgrade", (request, socket, head) => {
   }
 });
 
-// --- OpenAI Realtime Proxy ---
+// --- OpenAI Realtime Proxy (with cost tracking + time cap) ---
 wss.on("connection", (clientWs, req) => {
+  // Check daily budget before allowing connection
+  if (isDailyBudgetExceeded()) {
+    clientWs.send(
+      JSON.stringify({
+        type: "proxy.error",
+        error: "Daily budget exceeded. Please try again tomorrow or switch to VAPI.",
+      })
+    );
+    clientWs.close();
+    return;
+  }
+
   const openaiKey = process.env.OPENAI_API_KEY;
   if (!openaiKey) {
     clientWs.send(
@@ -59,12 +354,74 @@ wss.on("connection", (clientWs, req) => {
   const upstreamUrl = `wss://api.openai.com/v1/realtime?model=${model}`;
   console.log(`[OpenAI Proxy] Using model: ${model}`);
 
+  // Session tracking
+  const sessionId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const sessionStartTime = new Date();
+  let sessionEnded = false;
+
   const upstream = new WebSocket(upstreamUrl, {
     headers: {
       Authorization: `Bearer ${openaiKey}`,
       "OpenAI-Beta": "realtime=v1",
     },
   });
+
+  // --- Time cap enforcement ---
+  const maxDurationTimer = setTimeout(() => {
+    console.log(`[OpenAI Proxy] Max call duration (${MAX_CALL_DURATION_SECONDS}s) reached. Closing session ${sessionId}.`);
+    endSession("time_limit");
+  }, MAX_CALL_DURATION_SECONDS * 1000);
+
+  // Warning before time limit
+  const warningTimer = setTimeout(() => {
+    if (clientWs.readyState === WebSocket.OPEN) {
+      clientWs.send(
+        JSON.stringify({
+          type: "proxy.time_warning",
+          remainingSeconds: WARNING_BEFORE_END_SECONDS,
+          maxDurationSeconds: MAX_CALL_DURATION_SECONDS,
+        })
+      );
+    }
+  }, (MAX_CALL_DURATION_SECONDS - WARNING_BEFORE_END_SECONDS) * 1000);
+
+  function endSession(reason: string) {
+    if (sessionEnded) return;
+    sessionEnded = true;
+
+    clearTimeout(maxDurationTimer);
+    clearTimeout(warningTimer);
+
+    const endTime = new Date();
+    const durationSeconds = Math.round((endTime.getTime() - sessionStartTime.getTime()) / 1000);
+    const costPerMin = COST_RATES[model] || 0.15;
+    const estimatedCostUsd = Math.round((durationSeconds / 60) * costPerMin * 10000) / 10000;
+
+    recordSession({
+      id: sessionId,
+      startTime: sessionStartTime.toISOString(),
+      endTime: endTime.toISOString(),
+      durationSeconds,
+      model,
+      provider: "openai",
+      estimatedCostUsd,
+    });
+
+    console.log(`[OpenAI Proxy] Session ${sessionId} ended (${reason}): ${durationSeconds}s, ~$${estimatedCostUsd.toFixed(4)}`);
+
+    if (reason === "time_limit" && clientWs.readyState === WebSocket.OPEN) {
+      clientWs.send(
+        JSON.stringify({
+          type: "proxy.time_exceeded",
+          durationSeconds,
+          maxDurationSeconds: MAX_CALL_DURATION_SECONDS,
+        })
+      );
+    }
+
+    if (clientWs.readyState === WebSocket.OPEN) clientWs.close();
+    if (upstream.readyState === WebSocket.OPEN || upstream.readyState === WebSocket.CONNECTING) upstream.close();
+  }
 
   upstream.on("open", () => {
     console.log("[OpenAI Proxy] Upstream connected");
@@ -91,17 +448,15 @@ wss.on("connection", (clientWs, req) => {
 
   upstream.on("close", (code, reason) => {
     console.log(`[OpenAI Proxy] Upstream closed: ${code} ${reason}`);
-    if (clientWs.readyState === WebSocket.OPEN) {
-      clientWs.close();
-    }
+    endSession("upstream_closed");
   });
 
   upstream.on("error", (err) => {
     console.error("[OpenAI Proxy] Upstream error:", err.message);
     if (clientWs.readyState === WebSocket.OPEN) {
       clientWs.send(JSON.stringify({ type: "proxy.error", error: err.message }));
-      clientWs.close();
     }
+    endSession("upstream_error");
   });
 
   clientWs.on("message", (data) => {
@@ -121,12 +476,41 @@ wss.on("connection", (clientWs, req) => {
 
   clientWs.on("close", () => {
     console.log("[OpenAI Proxy] Client disconnected");
-    if (upstream.readyState === WebSocket.OPEN || upstream.readyState === WebSocket.CONNECTING) {
-      upstream.close();
-    }
+    endSession("client_disconnected");
   });
 });
 
+// --- VAPI call cost tracking endpoint ---
+// When using VAPI, the frontend reports call duration so the server can track costs
+app.post("/api/vapi/call-ended", (req, res) => {
+  const { durationSeconds, assistantId } = req.body || {};
+  if (typeof durationSeconds !== "number" || durationSeconds <= 0) {
+    return res.status(400).json({ error: "Invalid durationSeconds" });
+  }
+
+  const costPerMin = COST_RATES.vapi || 0.07;
+  const estimatedCostUsd = Math.round((durationSeconds / 60) * costPerMin * 10000) / 10000;
+
+  recordSession({
+    id: `vapi-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    startTime: new Date(Date.now() - durationSeconds * 1000).toISOString(),
+    endTime: new Date().toISOString(),
+    durationSeconds,
+    model: assistantId || "vapi-assistant",
+    provider: "vapi",
+    estimatedCostUsd,
+  });
+
+  res.json({ recorded: true, estimatedCostUsd });
+});
+
 httpServer.listen(PORT, () => {
-  console.log(`\n  Voice Agent server running on http://localhost:${PORT}\n`);
+  console.log(`\n  Voice Agent server running on http://localhost:${PORT}`);
+  console.log(`  Provider: ${VOICE_PROVIDER}`);
+  console.log(`  Max call duration: ${MAX_CALL_DURATION_SECONDS}s`);
+  if (DAILY_BUDGET_USD > 0) {
+    console.log(`  Daily budget: $${DAILY_BUDGET_USD}`);
+    console.log(`  Today's spend: $${getTodayCost().toFixed(4)}`);
+  }
+  console.log();
 });

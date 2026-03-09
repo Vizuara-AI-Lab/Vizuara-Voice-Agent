@@ -3,6 +3,11 @@ import Vapi from "@vapi-ai/web";
 export class VapiService {
   private vapi: Vapi | null = null;
   private callStartTime: number = 0;
+  private callId: string | null = null;
+
+  getCallId(): string | null {
+    return this.callId;
+  }
 
   async initializeAudio() {
     // VAPI handles audio internally — no-op
@@ -18,10 +23,16 @@ export class VapiService {
     try {
       if (this.vapi) await this.disconnect();
 
+      this.callId = null;
       this.vapi = new Vapi(config.vapiPublicKey);
 
       this.vapi.on("call-start", () => {
         this.callStartTime = Date.now();
+        // Try to capture call ID from the VAPI instance
+        try {
+          const id = (this.vapi as any)?.call?.id;
+          if (id) this.callId = id;
+        } catch {}
         config.onStatusChange?.("connected");
       });
 
@@ -41,6 +52,10 @@ export class VapiService {
       });
 
       this.vapi.on("message", (message: any) => {
+        // Capture call ID from any message that contains it
+        if (!this.callId && message?.call?.id) {
+          this.callId = message.call.id;
+        }
         if (message.type === "transcript" && message.transcriptType === "final") {
           const isUser = message.role === "user";
           config.onTranscription?.(message.transcript, isUser);
@@ -56,7 +71,8 @@ export class VapiService {
         config.onStatusChange?.("error", error?.message || "VAPI error");
       });
 
-      await this.vapi.start(config.vapiAssistantId);
+      const call = await this.vapi.start(config.vapiAssistantId);
+      this.callId = (call as any)?.id || null;
     } catch (err: any) {
       console.error("[VAPI] Failed to connect:", err);
       config.onStatusChange?.("error", err.message || "Failed to connect");
@@ -71,6 +87,8 @@ export class VapiService {
       } catch (e) {}
       this.vapi = null;
     }
+    // Don't clear callId here — widget needs it for feedback submission
+    // It gets reset on next connect() call
   }
 
   private async reportCallEnded(durationSeconds: number, assistantId: string) {

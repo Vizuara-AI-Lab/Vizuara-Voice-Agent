@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Phone, Bot, Loader2, ExternalLink, Mail, Copy, CheckCheck, ChevronDown, AlertTriangle } from "lucide-react";
+import { Phone, Bot, Loader2, ExternalLink, Mail, Copy, CheckCheck, ChevronDown, AlertTriangle, ThumbsUp, ThumbsDown, X, CheckCircle } from "lucide-react";
 import { OpenAIRealtimeService } from "./services/OpenAIRealtimeService";
 import { VapiService } from "./services/VapiService";
 import KNOWLEDGE_BASE from "./knowledge-base.txt?raw";
@@ -53,13 +53,13 @@ const OPENAI_MODEL = "gpt-4o-realtime-preview";
 // ─── Course Links Detection ─────────────────────────────────────────────────
 
 const COURSE_LINKS: { name: string; url: string; price?: string; keywords: string[] }[] = [
-  { name: "Minor in AI", url: "https://minor.vizuara.ai/", keywords: ["minor in ai"] },
-  { name: "Minor in GenAI", url: "https://genai-minor.vizuara.ai/", keywords: ["minor in genai", "genai minor", "generative ai minor"] },
-  { name: "Minor in Robotics", url: "https://minor-robotics.vizuara.ai/", keywords: ["minor in robotics", "robotics minor"] },
+  { name: "Minor in AI", url: "https://minor.vizuara.ai/", keywords: ["minor in ai", "minor in artificial intelligence"] },
+  { name: "Minor in GenAI", url: "https://genai-minor.vizuara.ai/", keywords: ["minor in genai", "genai minor", "generative ai minor", "minor in generative ai", "minor in generative artificial intelligence"] },
+  { name: "Minor in Robotics", url: "https://minor-robotics.vizuara.ai/", keywords: ["minor in robotics", "robotics minor", "minor in robot"] },
   { name: "Combined Minors", url: "https://minors.vizuara.ai/", keywords: ["combined minor", "both minors"] },
   { name: "RL Research Bootcamp", url: "https://rlresearcherbootcamp.vizuara.ai/", keywords: ["reinforcement learning", "rl research", "rl bootcamp"] },
   { name: "Hands-on RL Bootcamp", url: "https://hands-on-rl.vizuara.ai/", keywords: ["hands-on rl", "hands on reinforcement"] },
-  { name: "CV Research Bootcamp", url: "https://cvresearchbootcamp.vizuara.ai/", keywords: ["cv research", "computer vision research"] },
+  { name: "CV Research Bootcamp", url: "https://cvresearchbootcamp.vizuara.ai/", keywords: ["cv research", "computer vision research", "computer vision bootcamp"] },
   { name: "Hands-on CV Bootcamp", url: "https://hands-on-cv.vizuara.ai/", keywords: ["hands-on cv", "hands on computer vision"] },
   { name: "Vision LLMs Bootcamp", url: "https://vision-transformer.vizuara.ai/", keywords: ["vision llm", "vision transformer"] },
   { name: "Robot Learning Bootcamp", url: "https://robotlearningbootcamp.vizuara.ai/", price: "\u20B925,000", keywords: ["robot learning"] },
@@ -69,7 +69,7 @@ const COURSE_LINKS: { name: string; url: string; price?: string; keywords: strin
   { name: "Context Engineering Workshop", url: "https://context-engineering.vizuara.ai/", keywords: ["context engineering"] },
   { name: "Build SLM Workshop", url: "https://slm.vizuara.ai/", keywords: ["build slm", "slm workshop", "small language model"] },
   { name: "AI Pods", url: "https://pods.vizuara.ai/", keywords: ["ai pods", "pods"] },
-  { name: "10-Course AI & ML Bundle", url: "https://complete-pathway.vizuara.ai/", keywords: ["10-course", "10 course", "complete pathway"] },
+  { name: "10-Course AI & ML Bundle", url: "https://complete-pathway.vizuara.ai/", keywords: ["10-course", "10 course", "complete pathway", "ai and ml bundle"] },
   { name: "Vizz AI Tutor", url: "https://vizz.vizuara.ai/", keywords: ["vizz ai", "ai tutor", "vizz"] },
   { name: "High School AI Research", url: "https://ai-highschool-research.vizuara.ai/", keywords: ["high school", "highschool research"] },
 ];
@@ -185,8 +185,17 @@ const DEFAULT_CONFIG: ServerConfig = {
 
 // ─── Widget Component ───────────────────────────────────────────────────────
 
+const NEGATIVE_REASONS = [
+  "Not helpful",
+  "Wrong info",
+  "Too slow",
+  "Hard to understand",
+  "Didn't answer my question",
+  "Other",
+];
+
 export default function VoiceWidget() {
-  const [callState, setCallState] = useState<"idle" | "connecting" | "connected">("idle");
+  const [callState, setCallState] = useState<"idle" | "connecting" | "connected" | "feedback">("idle");
   const [transcription, setTranscription] = useState<{ text: string; isUser: boolean }[]>([]);
   const [volume, setVolume] = useState(0);
   const [emailCopied, setEmailCopied] = useState(false);
@@ -194,12 +203,23 @@ export default function VoiceWidget() {
   const [timeWarning, setTimeWarning] = useState(false);
   const [budgetExceeded, setBudgetExceeded] = useState(false);
 
+  // Feedback state
+  const [feedbackRating, setFeedbackRating] = useState<"positive" | "negative" | null>(null);
+  const [feedbackReasons, setFeedbackReasons] = useState<string[]>([]);
+  const [feedbackComment, setFeedbackComment] = useState("");
+  const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
+  const [feedbackThankYou, setFeedbackThankYou] = useState(false);
+
   const openaiServiceRef = React.useRef<OpenAIRealtimeService | null>(null);
   const vapiServiceRef = React.useRef<VapiService | null>(null);
   const endingRef = React.useRef(false);
   const configRef = React.useRef<ServerConfig>(DEFAULT_CONFIG);
   const autoEndTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const warningTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Full transcript (never trimmed) for server submission
+  const fullTranscriptRef = React.useRef<{ text: string; isUser: boolean; timestamp: string }[]>([]);
+  const callStartTimeRef = React.useRef<string>("");
 
   const getOpenAIService = () => {
     if (!openaiServiceRef.current) openaiServiceRef.current = new OpenAIRealtimeService();
@@ -248,11 +268,90 @@ export default function VoiceWidget() {
     }, maxMs + 2000); // +2s grace for server to close first
   };
 
+  const resetFeedbackState = () => {
+    setFeedbackRating(null);
+    setFeedbackReasons([]);
+    setFeedbackComment("");
+    setFeedbackSubmitting(false);
+    setFeedbackThankYou(false);
+  };
+
+  const submitCallRecord = async (feedback: { rating: "positive" | "negative"; reasons?: string[]; comment?: string } | null) => {
+    const config = configRef.current;
+    const vapiCallId = config.provider === "vapi" ? getVapiService().getCallId() : null;
+
+    try {
+      await fetch("/api/call-record", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          transcript: fullTranscriptRef.current,
+          feedback,
+          provider: config.provider,
+          durationSeconds: elapsed,
+          vapiCallId,
+          startTime: callStartTimeRef.current,
+        }),
+      });
+    } catch (e) {
+      console.warn("[VoiceWidget] Failed to submit call record:", e);
+    }
+  };
+
+  const handleFeedbackPositive = async () => {
+    setFeedbackRating("positive");
+    setFeedbackSubmitting(true);
+    await submitCallRecord({ rating: "positive" });
+    setFeedbackSubmitting(false);
+    setFeedbackThankYou(true);
+    setTimeout(() => {
+      setCallState("idle");
+      setTranscription([]);
+      resetFeedbackState();
+    }, 1500);
+  };
+
+  const handleFeedbackNegativeSelect = () => {
+    setFeedbackRating("negative");
+  };
+
+  const handleFeedbackSubmitNegative = async () => {
+    setFeedbackSubmitting(true);
+    await submitCallRecord({
+      rating: "negative",
+      reasons: feedbackReasons.length > 0 ? feedbackReasons : undefined,
+      comment: feedbackComment.trim() || undefined,
+    });
+    setFeedbackSubmitting(false);
+    setFeedbackThankYou(true);
+    setTimeout(() => {
+      setCallState("idle");
+      setTranscription([]);
+      resetFeedbackState();
+    }, 1500);
+  };
+
+  const handleFeedbackSkip = async () => {
+    await submitCallRecord(null);
+    setCallState("idle");
+    setTranscription([]);
+    resetFeedbackState();
+  };
+
+  const toggleReason = (reason: string) => {
+    setFeedbackReasons((prev) =>
+      prev.includes(reason) ? prev.filter((r) => r !== reason) : [...prev, reason]
+    );
+  };
+
   const startCall = async () => {
     endingRef.current = false;
     setCallState("connecting");
     setTranscription([]);
     setTimeWarning(false);
+    fullTranscriptRef.current = [];
+    callStartTimeRef.current = new Date().toISOString();
+    resetFeedbackState();
 
     const config = await fetchConfig();
 
@@ -282,6 +381,7 @@ export default function VoiceWidget() {
             }
           },
           onTranscription: (text, isUser) => {
+            fullTranscriptRef.current.push({ text, isUser, timestamp: new Date().toISOString() });
             setTranscription((prev) => [...prev, { text, isUser }].slice(-6));
           },
           onVolumeChange: (v) => setVolume(v),
@@ -314,6 +414,7 @@ export default function VoiceWidget() {
             }
           },
           onTranscription: (text, isUser) => {
+            fullTranscriptRef.current.push({ text, isUser, timestamp: new Date().toISOString() });
             setTranscription((prev) => [...prev, { text, isUser }].slice(-6));
           },
           onVolumeChange: (v) => setVolume(v),
@@ -344,9 +445,15 @@ export default function VoiceWidget() {
     }
 
     setVolume(0);
-    setCallState("idle");
-    setTranscription([]);
     setTimeWarning(false);
+
+    // Show feedback screen if there was any conversation
+    if (fullTranscriptRef.current.length > 0) {
+      setCallState("feedback");
+    } else {
+      setCallState("idle");
+      setTranscription([]);
+    }
   };
 
   const handleClick = () => {
@@ -360,6 +467,7 @@ export default function VoiceWidget() {
 
   const isActive = callState === "connected";
   const isConnecting = callState === "connecting";
+  const isFeedback = callState === "feedback";
   const inCall = isActive || isConnecting;
 
   // Call timer
@@ -595,8 +703,94 @@ export default function VoiceWidget() {
         )}
       </AnimatePresence>
 
+      {/* Feedback window */}
+      <AnimatePresence>
+        {isFeedback && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            className="voice-widget-window"
+          >
+            {feedbackThankYou ? (
+              <div className="voice-widget-feedback-thanks">
+                <div className="voice-widget-feedback-thanks-icon">
+                  <CheckCircle size={24} />
+                </div>
+                <p className="voice-widget-feedback-thanks-text">Thank you!</p>
+                <p className="voice-widget-feedback-thanks-sub">Your feedback helps us improve</p>
+              </div>
+            ) : (
+              <div style={{ padding: "24px 20px", position: "relative" }}>
+                {/* Skip button */}
+                <button onClick={handleFeedbackSkip} className="voice-widget-feedback-skip" title="Skip">
+                  <X size={16} />
+                </button>
+
+                <p className="voice-widget-feedback-question">How was your call?</p>
+
+                {/* Thumbs up/down */}
+                <div className="voice-widget-feedback-buttons">
+                  <button
+                    onClick={handleFeedbackPositive}
+                    className={`voice-widget-feedback-btn positive ${feedbackRating === "positive" ? "selected" : ""}`}
+                    disabled={feedbackSubmitting}
+                  >
+                    <ThumbsUp size={24} />
+                  </button>
+                  <button
+                    onClick={handleFeedbackNegativeSelect}
+                    className={`voice-widget-feedback-btn negative ${feedbackRating === "negative" ? "selected" : ""}`}
+                    disabled={feedbackSubmitting}
+                  >
+                    <ThumbsDown size={24} />
+                  </button>
+                </div>
+
+                {/* Negative feedback detail */}
+                {feedbackRating === "negative" && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    className="voice-widget-feedback-reasons"
+                  >
+                    <p className="voice-widget-feedback-reasons-label">What went wrong?</p>
+                    <div className="voice-widget-feedback-chips">
+                      {NEGATIVE_REASONS.map((reason) => (
+                        <button
+                          key={reason}
+                          onClick={() => toggleReason(reason)}
+                          className={`voice-widget-feedback-chip ${feedbackReasons.includes(reason) ? "selected" : ""}`}
+                        >
+                          {reason}
+                        </button>
+                      ))}
+                    </div>
+                    <textarea
+                      className="voice-widget-feedback-text"
+                      placeholder="Any additional comments? (optional)"
+                      rows={2}
+                      value={feedbackComment}
+                      onChange={(e) => setFeedbackComment(e.target.value)}
+                    />
+                    <button
+                      onClick={handleFeedbackSubmitNegative}
+                      disabled={feedbackSubmitting}
+                      className="voice-widget-feedback-submit"
+                    >
+                      {feedbackSubmitting ? "Submitting..." : "Submit Feedback"}
+                    </button>
+                  </motion.div>
+                )}
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* FAB button */}
-      {!inCall && !budgetExceeded && (
+      {!inCall && !isFeedback && !budgetExceeded && (
         <motion.button
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}

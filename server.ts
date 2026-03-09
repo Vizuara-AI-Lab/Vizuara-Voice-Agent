@@ -24,8 +24,11 @@ const COST_RATES: Record<string, number> = {
 };
 
 // --- Cost Tracker ---
+const VAPI_SERVER_API_KEY = process.env.VAPI_SERVER_API_KEY || "";
+
 const DATA_DIR = path.join(import.meta.dirname, "data");
 const COST_FILE = path.join(DATA_DIR, "cost-tracker.json");
+const CALL_RECORDS_FILE = path.join(DATA_DIR, "call-records.json");
 
 interface CallSession {
   id: string;
@@ -104,6 +107,182 @@ function recordSession(session: CallSession) {
 function isDailyBudgetExceeded(): boolean {
   if (DAILY_BUDGET_USD <= 0) return false;
   return getTodayCost() >= DAILY_BUDGET_USD;
+}
+
+// --- Call Records (feedback + transcript + quality) ---
+
+interface TranscriptEntry {
+  text: string;
+  isUser: boolean;
+  timestamp: string;
+}
+
+interface CallFeedback {
+  rating: "positive" | "negative";
+  reasons?: string[];
+  comment?: string;
+}
+
+interface QualityMetrics {
+  engagement: number;      // 0-100
+  topicCoverage: number;   // 0-100
+  conversationFlow: number; // 0-100
+  composite: number;       // 0-100 weighted
+}
+
+interface VapiAnalytics {
+  summary: string | null;
+  successEvaluation: string | null;
+  recordingUrl: string | null;
+  vapiCost: number | null;
+}
+
+interface CallRecord {
+  id: string;
+  provider: "openai" | "vapi";
+  startTime: string;
+  endTime: string;
+  durationSeconds: number;
+  transcript: TranscriptEntry[];
+  feedback: CallFeedback | null;
+  qualityMetrics: QualityMetrics;
+  vapiAnalytics: VapiAnalytics | null;
+  vapiCallId: string | null;
+}
+
+function loadCallRecords(): CallRecord[] {
+  try {
+    if (fs.existsSync(CALL_RECORDS_FILE)) {
+      return JSON.parse(fs.readFileSync(CALL_RECORDS_FILE, "utf-8"));
+    }
+  } catch (e) {
+    console.error("[CallRecords] Failed to load:", e);
+  }
+  return [];
+}
+
+function saveCallRecords(records: CallRecord[]) {
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    fs.writeFileSync(CALL_RECORDS_FILE, JSON.stringify(records, null, 2));
+  } catch (e) {
+    console.error("[CallRecords] Failed to save:", e);
+  }
+}
+
+function addCallRecord(record: CallRecord) {
+  const records = loadCallRecords();
+  records.push(record);
+  saveCallRecords(records);
+}
+
+function updateCallRecord(id: string, updates: Partial<CallRecord>) {
+  const records = loadCallRecords();
+  const idx = records.findIndex((r) => r.id === id);
+  if (idx >= 0) {
+    records[idx] = { ...records[idx], ...updates };
+    saveCallRecords(records);
+  }
+}
+
+// --- Quality Scoring (rule-based, no LLM) ---
+
+const COURSE_KEYWORDS = [
+  "ai", "machine learning", "deep learning", "reinforcement learning", "computer vision",
+  "nlp", "natural language", "transformer", "llm", "gpu", "robot", "robotics",
+  "bootcamp", "minor", "genai", "generative ai", "agents", "context engineering",
+  "neural network", "pytorch", "tensorflow", "slm", "vizuara", "pod", "course",
+  "curriculum", "training", "workshop", "certificate", "research",
+];
+
+function computeQualityMetrics(transcript: TranscriptEntry[]): QualityMetrics {
+  if (transcript.length === 0) {
+    return { engagement: 0, topicCoverage: 0, conversationFlow: 0, composite: 0 };
+  }
+
+  // --- Engagement (40%) ---
+  const userTurns = transcript.filter((t) => t.isUser);
+  const aiTurns = transcript.filter((t) => !t.isUser);
+  const totalTurns = transcript.length;
+
+  // Turn count score: 2+ user turns = good, 5+ = great
+  const turnScore = Math.min(100, (userTurns.length / 5) * 100);
+
+  // Average user message length (longer = more engaged)
+  const avgUserLen = userTurns.length > 0
+    ? userTurns.reduce((sum, t) => sum + t.text.length, 0) / userTurns.length
+    : 0;
+  const lengthScore = Math.min(100, (avgUserLen / 50) * 100);
+
+  // Back-and-forth: at least some user turns
+  const backForthScore = userTurns.length > 0 && aiTurns.length > 0 ? 100 : 0;
+
+  const engagement = Math.round((turnScore * 0.4 + lengthScore * 0.3 + backForthScore * 0.3));
+
+  // --- Topic Coverage (30%) ---
+  const allText = transcript.map((t) => t.text).join(" ").toLowerCase();
+  const matchedKeywords = COURSE_KEYWORDS.filter((kw) => allText.includes(kw));
+  // 3+ keywords = great, 1-2 = decent
+  const topicCoverage = Math.min(100, Math.round((matchedKeywords.length / 3) * 100));
+
+  // --- Conversation Flow (30%) ---
+  // Good flow = alternating user/AI turns
+  let alternations = 0;
+  for (let i = 1; i < transcript.length; i++) {
+    if (transcript[i].isUser !== transcript[i - 1].isUser) alternations++;
+  }
+  const alternationRate = totalTurns > 1 ? alternations / (totalTurns - 1) : 0;
+  const conversationFlow = Math.round(alternationRate * 100);
+
+  // --- Composite ---
+  const composite = Math.round(engagement * 0.4 + topicCoverage * 0.3 + conversationFlow * 0.3);
+
+  return { engagement, topicCoverage, conversationFlow, composite };
+}
+
+// --- VAPI Analytics Fetch (with retry) ---
+
+async function fetchVapiAnalytics(vapiCallId: string, recordId: string) {
+  if (!VAPI_SERVER_API_KEY || !vapiCallId) return;
+
+  const delays = [10000, 30000, 60000]; // 10s, 30s, 60s
+
+  for (const delay of delays) {
+    await new Promise((resolve) => setTimeout(resolve, delay));
+
+    try {
+      const resp = await fetch(`https://api.vapi.ai/call/${vapiCallId}`, {
+        headers: { Authorization: `Bearer ${VAPI_SERVER_API_KEY}` },
+      });
+
+      if (!resp.ok) {
+        console.warn(`[VAPI Analytics] HTTP ${resp.status} for call ${vapiCallId}`);
+        continue;
+      }
+
+      const data = await resp.json();
+      const analysis = data.analysis || {};
+
+      if (analysis.summary) {
+        const analytics: VapiAnalytics = {
+          summary: analysis.summary || null,
+          successEvaluation: analysis.successEvaluation || null,
+          recordingUrl: data.recordingUrl || null,
+          vapiCost: data.cost != null ? data.cost : null,
+        };
+
+        updateCallRecord(recordId, { vapiAnalytics: analytics });
+        console.log(`[VAPI Analytics] Fetched analytics for call ${vapiCallId}`);
+        return;
+      }
+    } catch (e) {
+      console.warn(`[VAPI Analytics] Fetch error for ${vapiCallId}:`, e);
+    }
+  }
+
+  console.warn(`[VAPI Analytics] Could not fetch analytics for ${vapiCallId} after retries`);
 }
 
 // --- Serve static files (production build) ---
@@ -296,6 +475,197 @@ app.get("/admin/costs", (_req, res) => {
   </table>
 
   <p class="refresh-note">Refresh the page to update. Data stored in data/cost-tracker.json on the server.</p>
+</body>
+</html>`);
+});
+
+// --- Call Record Endpoints ---
+
+app.post("/api/call-record", (req, res) => {
+  const { transcript, feedback, provider, durationSeconds, vapiCallId, startTime } = req.body || {};
+
+  if (!Array.isArray(transcript)) {
+    return res.status(400).json({ error: "transcript array required" });
+  }
+
+  const recordId = `cr-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const endTime = new Date().toISOString();
+  const prov = provider === "vapi" ? "vapi" : "openai";
+
+  const transcriptEntries: TranscriptEntry[] = transcript.map((t: any) => ({
+    text: String(t.text || ""),
+    isUser: Boolean(t.isUser),
+    timestamp: t.timestamp || endTime,
+  }));
+
+  const qualityMetrics = computeQualityMetrics(transcriptEntries);
+
+  const record: CallRecord = {
+    id: recordId,
+    provider: prov,
+    startTime: startTime || new Date(Date.now() - (durationSeconds || 0) * 1000).toISOString(),
+    endTime,
+    durationSeconds: durationSeconds || 0,
+    transcript: transcriptEntries,
+    feedback: feedback ? {
+      rating: feedback.rating === "negative" ? "negative" : "positive",
+      reasons: Array.isArray(feedback.reasons) ? feedback.reasons : undefined,
+      comment: typeof feedback.comment === "string" && feedback.comment.trim() ? feedback.comment.trim() : undefined,
+    } : null,
+    qualityMetrics,
+    vapiAnalytics: null,
+    vapiCallId: vapiCallId || null,
+  };
+
+  addCallRecord(record);
+  console.log(`[CallRecord] Saved ${recordId}: ${prov}, ${transcriptEntries.length} turns, quality=${qualityMetrics.composite}`);
+
+  // Fetch VAPI analytics in background if applicable
+  if (prov === "vapi" && vapiCallId && VAPI_SERVER_API_KEY) {
+    fetchVapiAnalytics(vapiCallId, recordId);
+  }
+
+  res.json({ id: recordId, qualityMetrics });
+});
+
+app.get("/api/call-records", (_req, res) => {
+  const records = loadCallRecords();
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
+  const recent = records
+    .filter((r) => r.endTime >= thirtyDaysAgo)
+    .map(({ transcript, ...rest }) => ({ ...rest, turnCount: transcript.length }));
+
+  res.json(recent);
+});
+
+app.get("/api/call-records/:id", (req, res) => {
+  const records = loadCallRecords();
+  const record = records.find((r) => r.id === req.params.id);
+  if (!record) return res.status(404).json({ error: "Record not found" });
+  res.json(record);
+});
+
+// --- Feedback Dashboard ---
+app.get("/admin/feedback", (_req, res) => {
+  const records = loadCallRecords();
+  const recent = records.slice(-100).reverse();
+
+  const totalCalls = records.length;
+  const withFeedback = records.filter((r) => r.feedback !== null);
+  const feedbackRate = totalCalls > 0 ? Math.round((withFeedback.length / totalCalls) * 100) : 0;
+  const avgQuality = totalCalls > 0
+    ? Math.round(records.reduce((sum, r) => sum + r.qualityMetrics.composite, 0) / totalCalls)
+    : 0;
+  const positiveCount = withFeedback.filter((r) => r.feedback?.rating === "positive").length;
+  const positiveRate = withFeedback.length > 0 ? Math.round((positiveCount / withFeedback.length) * 100) : 0;
+
+  const fmtDuration = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return m > 0 ? `${m}m ${sec}s` : `${sec}s`;
+  };
+
+  const escapeHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+  const tableRows = recent.map((r) => {
+    const date = new Date(r.endTime).toLocaleString();
+    const ratingBadge = r.feedback
+      ? r.feedback.rating === "positive"
+        ? '<span class="badge positive">&#128077;</span>'
+        : '<span class="badge negative">&#128078;</span>'
+      : '<span class="badge skipped">—</span>';
+    const reasons = r.feedback?.reasons?.join(", ") || "";
+    const vapiSummary = r.vapiAnalytics?.summary || "";
+    const qualityColor = r.qualityMetrics.composite >= 70 ? "#4ade80" : r.qualityMetrics.composite >= 40 ? "#f59e0b" : "#f87171";
+
+    const transcriptHtml = r.transcript.map((t) =>
+      `<p style="margin:4px 0;font-size:12px"><strong style="color:${t.isUser ? "#f472b6" : "#c084fc"}">${t.isUser ? "User" : "AI"}:</strong> ${escapeHtml(t.text)}</p>`
+    ).join("");
+
+    return `<tr>
+      <td>${date}</td>
+      <td><span class="badge ${r.provider}">${r.provider.toUpperCase()}</span></td>
+      <td>${fmtDuration(r.durationSeconds)}</td>
+      <td style="color:${qualityColor};font-weight:700">${r.qualityMetrics.composite}</td>
+      <td>${ratingBadge}</td>
+      <td style="font-size:12px;color:#a3a3a3">${escapeHtml(reasons)}</td>
+      <td style="font-size:12px;color:#a3a3a3;max-width:300px">${escapeHtml(vapiSummary)}</td>
+      <td>
+        <details><summary style="cursor:pointer;color:#c084fc;font-size:11px">View</summary>
+          <div style="max-height:200px;overflow-y:auto;padding:8px;background:#0a0a0a;border-radius:6px;margin-top:4px">${transcriptHtml}</div>
+        </details>
+      </td>
+    </tr>`;
+  }).join("\n");
+
+  res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voice Agent — Feedback Dashboard</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: "Inter", system-ui, sans-serif; background: #0a0a0a; color: #e5e5e5; padding: 32px; }
+    h1 { font-size: 22px; margin-bottom: 8px; }
+    .subtitle { color: #737373; font-size: 14px; margin-bottom: 24px; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 32px; }
+    .card { background: #171717; border: 1px solid #262626; border-radius: 12px; padding: 16px; }
+    .card .label { font-size: 11px; color: #737373; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+    .card .value { font-size: 24px; font-weight: 700; }
+    .card .value.green { color: #4ade80; }
+    .card .value.amber { color: #f59e0b; }
+    .card .value.purple { color: #c084fc; }
+    .card .value.pink { color: #f472b6; }
+    table { width: 100%; border-collapse: collapse; background: #171717; border: 1px solid #262626; border-radius: 12px; overflow: hidden; }
+    th { text-align: left; padding: 10px 12px; font-size: 11px; color: #737373; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #262626; background: #1a1a1a; }
+    td { padding: 10px 12px; font-size: 13px; border-bottom: 1px solid #1f1f1f; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+    .badge.openai { background: rgba(16,185,129,0.15); color: #34d399; }
+    .badge.vapi { background: rgba(192,132,252,0.15); color: #c084fc; }
+    .badge.positive { background: rgba(74,222,128,0.15); color: #4ade80; }
+    .badge.negative { background: rgba(248,113,113,0.15); color: #f87171; }
+    .badge.skipped { background: rgba(82,82,82,0.3); color: #737373; }
+    .nav { margin-bottom: 24px; }
+    .nav a { color: #c084fc; font-size: 13px; text-decoration: none; margin-right: 16px; }
+    .nav a:hover { text-decoration: underline; }
+    .refresh-note { color: #525252; font-size: 12px; margin-top: 24px; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="nav"><a href="/admin/costs">Cost Dashboard</a> <a href="/admin/feedback">Feedback Dashboard</a></div>
+  <h1>Feedback &amp; Quality Dashboard</h1>
+  <p class="subtitle">Vizuara AI Labs — Conversation quality tracking</p>
+
+  <div class="cards">
+    <div class="card">
+      <div class="label">Total Calls</div>
+      <div class="value purple">${totalCalls}</div>
+    </div>
+    <div class="card">
+      <div class="label">Feedback Rate</div>
+      <div class="value amber">${feedbackRate}%</div>
+    </div>
+    <div class="card">
+      <div class="label">Avg Quality Score</div>
+      <div class="value green">${avgQuality}</div>
+    </div>
+    <div class="card">
+      <div class="label">Positive Feedback</div>
+      <div class="value pink">${positiveRate}%</div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>Date</th><th>Provider</th><th>Duration</th><th>Quality</th><th>Rating</th><th>Reasons</th><th>VAPI Summary</th><th>Transcript</th></tr>
+    </thead>
+    <tbody>${tableRows || '<tr><td colspan="8" style="text-align:center;color:#888">No call records yet</td></tr>'}</tbody>
+  </table>
+
+  <p class="refresh-note">Refresh to update. Data stored in data/call-records.json on the server.</p>
 </body>
 </html>`);
 });

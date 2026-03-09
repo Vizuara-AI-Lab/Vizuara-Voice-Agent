@@ -11,7 +11,7 @@ const app = express();
 const PORT = parseInt(process.env.PORT || "3000");
 
 // --- Configuration ---
-const VOICE_PROVIDER = (process.env.VOICE_PROVIDER || "openai") as "openai" | "vapi";
+const VOICE_PROVIDER = (process.env.VOICE_PROVIDER || "vapi") as "openai" | "vapi";
 const MAX_CALL_DURATION_SECONDS = parseInt(process.env.MAX_CALL_DURATION_SECONDS || "300"); // 5 min default
 const DAILY_BUDGET_USD = parseFloat(process.env.DAILY_BUDGET_USD || "0"); // 0 = unlimited
 const WARNING_BEFORE_END_SECONDS = 30;

@@ -1,6 +1,6 @@
 # Vizuara Voice Agent Widget
 
-A floating voice agent widget powered by OpenAI's Realtime API (with VAPI fallback). Drop it into any website to add a voice-based AI assistant.
+A floating voice agent widget powered by VAPI (with OpenAI Realtime fallback). Drop it into any website to add a voice-based AI assistant. Includes post-call feedback collection, conversation quality scoring, and admin dashboards.
 
 ## Architecture
 
@@ -39,33 +39,39 @@ npm start
 
 Deploy to Railway, Render, Fly.io, or any Node.js host that supports WebSockets.
 
-## Cost Dashboard
+## Dashboards
 
-View real-time cost tracking at:
-
+### Cost Dashboard
 ```
 https://your-domain.com/admin/costs
 ```
-
 Shows today's spend, call count, session details, budget usage, and 30-day history.
+
+### Feedback & Quality Dashboard
+```
+https://your-domain.com/admin/feedback
+```
+Shows total calls, feedback rate, average quality score, positive feedback %, and a table of all call records with expandable transcripts.
 
 ## Switching Voice Providers
 
 The widget supports two providers. Switch instantly via `.env.local`:
 
-### OpenAI Realtime (default)
-```env
-VOICE_PROVIDER=openai
-```
-Uses `gpt-4o-realtime-preview` with direct audio streaming. Higher quality, higher cost (~$0.30/min).
-
-### VAPI (cost-saving fallback)
+### VAPI (default)
 ```env
 VOICE_PROVIDER=vapi
 VAPI_API_KEY=your-vapi-public-key
 VAPI_ASSISTANT_ID=your-assistant-id
 ```
-Uses VAPI's hosted voice agent (Vikrant). Lower cost (~$0.07/min). Restart the server after switching.
+Uses VAPI's hosted voice agent (Vikrant). Lower cost (~$0.07/min).
+
+### OpenAI Realtime
+```env
+VOICE_PROVIDER=openai
+```
+Uses `gpt-4o-realtime-preview` with direct audio streaming. Higher quality, higher cost (~$0.30/min).
+
+Restart the server after switching providers.
 
 ## Cost Controls
 
@@ -87,6 +93,26 @@ COST_PER_MIN_REALTIME=0.30   # gpt-4o-realtime (~$0.06 input + $0.24 output per 
 COST_PER_MIN_MINI=0.05       # gpt-4o-mini-realtime
 COST_PER_MIN_VAPI=0.07       # VAPI
 ```
+
+## Post-Call Feedback & Quality Tracking
+
+After every call, users see a feedback screen:
+- **Thumbs up** — submits immediately with positive rating
+- **Thumbs down** — shows selectable reason chips ("Not helpful", "Wrong info", "Too slow", "Hard to understand", "Didn't answer my question", "Other") + free-text comment
+- **Skip (X)** — transcript is still saved, but no feedback recorded
+
+Each call record includes:
+- **Full transcript** with timestamps
+- **User feedback** (rating, reasons, comment)
+- **Quality score** (0-100) computed from engagement, topic coverage, and conversation flow
+- **VAPI analytics** (VAPI calls only) — summary, success evaluation, recording URL, fetched automatically from the VAPI API
+
+Quality scoring is rule-based (no LLM cost):
+- **Engagement (40%)**: turn count, message length, back-and-forth interaction
+- **Topic coverage (30%)**: course keyword matches in the transcript
+- **Conversation flow (30%)**: alternation rate between user and AI turns
+
+Data is stored in `data/call-records.json` on the server.
 
 ## Integration with an Existing Website
 
@@ -124,22 +150,24 @@ You'll still need `server.ts` running as a backend.
 ## File Structure
 
 ```
-├── server.ts                          # Express + WebSocket proxy + cost tracking + dashboard
+├── server.ts                          # Express + WS proxy + cost tracking + call records + quality scoring + dashboards
 ├── src/
 │   ├── main.tsx                       # Entry point
-│   ├── VoiceWidget.tsx                # The floating widget component
-│   ├── voice-widget.css               # Self-contained widget styles
+│   ├── VoiceWidget.tsx                # Floating widget + post-call feedback UI
+│   ├── voice-widget.css               # Self-contained widget styles (incl. feedback)
 │   └── services/
 │       ├── AudioService.ts            # Mic capture + audio playback (24kHz PCM16)
 │       ├── LatencyTracker.ts          # Turn-by-turn latency metrics
 │       ├── OpenAIRealtimeService.ts   # WebSocket client for OpenAI Realtime
-│       └── VapiService.ts            # VAPI Web SDK wrapper
+│       └── VapiService.ts            # VAPI Web SDK wrapper + call ID capture
 ├── data/
-│   └── cost-tracker.json             # Auto-generated daily cost data (gitignored)
+│   ├── cost-tracker.json             # Auto-generated daily cost data (gitignored)
+│   └── call-records.json             # Auto-generated call records with feedback (gitignored)
 ├── index.html
 ├── vite.config.ts
 ├── package.json
 ├── tsconfig.json
+├── DEVELOPER-INSTRUCTIONS.md
 └── .env.example
 ```
 
@@ -148,7 +176,7 @@ You'll still need `server.ts` running as a backend.
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `OPENAI_API_KEY` | Yes (for OpenAI mode) | — | OpenAI API key with Realtime API access |
-| `VOICE_PROVIDER` | No | `openai` | `openai` or `vapi` |
+| `VOICE_PROVIDER` | No | `vapi` | `openai` or `vapi` |
 | `MAX_CALL_DURATION_SECONDS` | No | `300` | Max call length in seconds |
 | `DAILY_BUDGET_USD` | No | `0` | Daily spending cap ($0 = unlimited) |
 | `COST_PER_MIN_REALTIME` | No | `0.30` | Estimated $/min for gpt-4o-realtime |
@@ -156,6 +184,7 @@ You'll still need `server.ts` running as a backend.
 | `COST_PER_MIN_VAPI` | No | `0.07` | Estimated $/min for VAPI |
 | `VAPI_API_KEY` | Yes (for VAPI mode) | — | VAPI public key |
 | `VAPI_ASSISTANT_ID` | Yes (for VAPI mode) | — | VAPI assistant ID (e.g., Vikrant) |
+| `VAPI_SERVER_API_KEY` | No | — | VAPI private key for fetching call analytics |
 | `PORT` | No | `3000` | Server port |
 
 ## API Endpoints
@@ -166,13 +195,21 @@ You'll still need `server.ts` running as a backend.
 | `GET /api/config` | Returns current provider, limits, budget status |
 | `GET /api/costs/today` | Today's cost, calls, duration, budget status |
 | `GET /api/costs` | Last 30 days of daily cost summaries |
-| `GET /admin/costs` | Cost dashboard (HTML page) |
 | `POST /api/vapi/call-ended` | Frontend reports VAPI call duration for tracking |
+| `POST /api/call-record` | Submit call transcript + feedback, returns quality score |
+| `GET /api/call-records` | Last 30 days of call records (without full transcripts) |
+| `GET /api/call-records/:id` | Single call record with full transcript |
+| `GET /admin/costs` | Cost dashboard (HTML) |
+| `GET /admin/feedback` | Feedback & quality dashboard (HTML) |
 
 ## Features
 
-- Real-time voice conversation (OpenAI Realtime API or VAPI)
-- One-line provider switching (OpenAI ↔ VAPI)
+- Real-time voice conversation (VAPI or OpenAI Realtime API)
+- One-line provider switching (VAPI ↔ OpenAI)
+- Post-call feedback UI (thumbs up/down, reason chips, free-text comment)
+- Conversation quality scoring (engagement, topic coverage, conversation flow)
+- VAPI analytics integration (call summary, success evaluation, recording URL)
+- Feedback & quality admin dashboard
 - Call time cap with warning banner and auto-end
 - Daily budget enforcement
 - Cost dashboard with session-level tracking

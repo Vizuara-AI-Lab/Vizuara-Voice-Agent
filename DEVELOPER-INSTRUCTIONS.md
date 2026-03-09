@@ -6,8 +6,8 @@ This repo contains a standalone voice agent widget that lets website visitors ta
 
 | Provider | Model | Cost | Quality |
 |----------|-------|------|---------|
-| **OpenAI Realtime** (default) | gpt-4o-realtime-preview | ~$0.30/min | Highest — direct audio streaming |
-| **VAPI** (fallback) | Vikrant agent (gpt-4o-mini + ElevenLabs) | ~$0.07/min | Good — managed pipeline |
+| **VAPI** (default) | Vikrant agent (gpt-4o-mini + ElevenLabs) | ~$0.07/min | Good — managed pipeline |
+| **OpenAI Realtime** | gpt-4o-realtime-preview | ~$0.30/min | Highest — direct audio streaming |
 
 ---
 
@@ -60,6 +60,9 @@ DAILY_BUDGET_USD=5              # $5/day cap (0 = unlimited)
 # VAPI (only needed when VOICE_PROVIDER=vapi)
 VAPI_API_KEY=your-vapi-public-key
 VAPI_ASSISTANT_ID=ed2c2703-ffcb-4424-86c2-0509ca0da732
+
+# VAPI server key (private — for fetching call analytics from VAPI API)
+VAPI_SERVER_API_KEY=your-vapi-server-key
 ```
 
 > Ask Raj for the API keys. The OpenAI key is the same one used in the BharatVoice AI project. The VAPI public key and Vikrant assistant ID are pre-configured.
@@ -73,6 +76,7 @@ npm run dev
 - Vite dev server: http://localhost:5173
 - Backend proxy: http://localhost:3000
 - Cost dashboard: http://localhost:3000/admin/costs
+- Feedback dashboard: http://localhost:3000/admin/feedback
 
 Click the floating purple phone icon → allow microphone → start talking.
 
@@ -80,8 +84,8 @@ Click the floating purple phone icon → allow microphone → start talking.
 
 | File | What it does |
 |------|-------------|
-| `server.ts` | Express server + WebSocket proxy + **cost tracking** + **time cap enforcement** + **cost dashboard**. |
-| `src/VoiceWidget.tsx` | The entire widget — FAB button, call window, transcript, course links, email detection. Contains the **system instruction** and **knowledge base**. Handles **provider switching** and **time warnings**. |
+| `server.ts` | Express server + WebSocket proxy + **cost tracking** + **time cap enforcement** + **call record storage** + **quality scoring** + **VAPI analytics fetch** + **cost & feedback dashboards**. |
+| `src/VoiceWidget.tsx` | The entire widget — FAB button, call window, transcript, course links, email detection, **post-call feedback UI**. Contains the **system instruction** and **knowledge base**. Handles **provider switching** and **time warnings**. |
 | `src/voice-widget.css` | Self-contained CSS. All classes prefixed with `voice-widget-`. Won't conflict with your site's styles. |
 | `src/services/OpenAIRealtimeService.ts` | WebSocket client for OpenAI Realtime mode. |
 | `src/services/VapiService.ts` | VAPI Web SDK wrapper for VAPI mode. |
@@ -89,6 +93,7 @@ Click the floating purple phone icon → allow microphone → start talking.
 | `src/services/LatencyTracker.ts` | Turn-by-turn latency tracking (optional). |
 | `src/knowledge-base.txt` | Full Vizuara knowledge base — courses, pricing, schedules, FAQs. |
 | `data/cost-tracker.json` | Auto-generated cost data (gitignored). |
+| `data/call-records.json` | Auto-generated call records with transcripts, feedback, and quality scores (gitignored). |
 
 ---
 
@@ -174,6 +179,81 @@ In `data/cost-tracker.json` on the server. This file is auto-created and gitigno
 
 ---
 
+## Post-Call Feedback & Quality Tracking
+
+After every call ends, the widget shows a feedback screen:
+
+```
+Call ends → "How was your call?"
+  ├─ Thumbs up → submits immediately → "Thank you!" → idle
+  ├─ Thumbs down → shows reason chips + comment box → submit → "Thank you!" → idle
+  └─ Skip (X) → transcript still saved (no feedback) → idle
+```
+
+Negative feedback reasons (selectable chips): "Not helpful", "Wrong info", "Too slow", "Hard to understand", "Didn't answer my question", "Other".
+
+### What gets saved
+
+Every call creates a record in `data/call-records.json` containing:
+- **Full transcript** — every turn with timestamps (never trimmed, unlike the 6-message display)
+- **Feedback** — rating (positive/negative), selected reasons, free-text comment (or `null` if skipped)
+- **Quality metrics** — rule-based composite score (0-100) from:
+  - Engagement (40%): turn count, message length, back-and-forth
+  - Topic coverage (30%): course keyword matches in transcript
+  - Conversation flow (30%): alternation rate between user/AI turns
+- **VAPI analytics** (VAPI calls only) — auto-fetched from VAPI API after the call ends:
+  - Call summary, success evaluation, recording URL, VAPI cost
+
+### VAPI Analytics
+
+For VAPI calls, the server fetches analytics from `GET https://api.vapi.ai/call/{callId}` using `VAPI_SERVER_API_KEY`. Since VAPI processes analytics asynchronously, the server retries at 10s, 30s, and 60s until the summary is populated.
+
+```env
+# Add to .env.local (private key — NOT the same as VAPI_API_KEY)
+VAPI_SERVER_API_KEY=your-vapi-server-key
+```
+
+### Call Record API Endpoints
+
+```bash
+# Submit a call record (normally done automatically by the widget)
+POST /api/call-record
+Content-Type: application/json
+{
+  "transcript": [{ "text": "Hello", "isUser": false }],
+  "feedback": { "rating": "positive" },
+  "provider": "vapi",
+  "durationSeconds": 120,
+  "vapiCallId": "call-abc123",
+  "startTime": "2026-03-09T12:00:00Z"
+}
+# Returns: { "id": "cr-...", "qualityMetrics": { ... } }
+
+# List recent call records (last 30 days, transcripts excluded for performance)
+GET /api/call-records
+
+# Get a single record with full transcript
+GET /api/call-records/:id
+```
+
+### Feedback Dashboard
+
+Visit:
+```
+https://your-domain.com/admin/feedback
+```
+
+The dashboard shows:
+- **Summary cards**: total calls, feedback rate, avg quality score, positive feedback %
+- **Records table**: date, provider, duration, quality score, rating, reasons, VAPI summary
+- **Expandable transcripts**: click "View" to see the full conversation
+
+### Where is feedback data stored?
+
+In `data/call-records.json` on the server (separate from `cost-tracker.json` to keep budget checks fast). This file is auto-created and gitignored. Use a persistent volume in production if you need to keep it across deploys.
+
+---
+
 ## Integrate into vizuara.ai
 
 ### Option A: If vizuara.ai uses React
@@ -224,7 +304,8 @@ The widget needs `server.ts` for:
 - WebSocket proxy to OpenAI (in OpenAI mode)
 - Cost tracking (both modes)
 - Budget enforcement (both modes)
-- The `/admin/costs` dashboard
+- Post-call feedback & quality tracking (both modes)
+- The `/admin/costs` and `/admin/feedback` dashboards
 
 Deploy it alongside your existing backend, or as a separate service (e.g., on Railway).
 
@@ -269,6 +350,8 @@ Edit `src/voice-widget.css`. Key values:
 - [ ] Site is served over HTTPS (required for microphone access)
 - [ ] Test a call end-to-end: click icon → allow mic → speak → hear response
 - [ ] Verify cost dashboard at `/admin/costs`
+- [ ] Verify feedback dashboard at `/admin/feedback`
+- [ ] Verify post-call feedback screen appears after ending a call
 - [ ] Verify call auto-ends at time limit
 
 ---

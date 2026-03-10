@@ -194,7 +194,7 @@ const NEGATIVE_REASONS = [
   "Other",
 ];
 
-export default function VoiceWidget() {
+export default function VoiceWidget({ serverUrl = "" }: { serverUrl?: string }) {
   const [callState, setCallState] = useState<"idle" | "connecting" | "connected" | "feedback">("idle");
   const [transcription, setTranscription] = useState<{ text: string; isUser: boolean }[]>([]);
   const [volume, setVolume] = useState(0);
@@ -233,7 +233,7 @@ export default function VoiceWidget() {
 
   const fetchConfig = async (): Promise<ServerConfig> => {
     try {
-      const res = await fetch("/api/config");
+      const res = await fetch(`${serverUrl}/api/config`);
       const data = await res.json();
       configRef.current = data;
       return data;
@@ -281,7 +281,7 @@ export default function VoiceWidget() {
     const vapiCallId = config.provider === "vapi" ? getVapiService().getCallId() : null;
 
     try {
-      await fetch("/api/call-record", {
+      await fetch(`${serverUrl}/api/call-record`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -367,6 +367,7 @@ export default function VoiceWidget() {
         const service = getVapiService();
         await service.initializeAudio();
         await service.connect({
+          serverUrl,
           vapiPublicKey: config.vapiPublicKey,
           vapiAssistantId: config.vapiAssistantId,
           onStatusChange: (s, err) => {
@@ -398,6 +399,7 @@ export default function VoiceWidget() {
         const fullInstruction = `${SYSTEM_INSTRUCTION}\n\nToday: ${dateString}, ${timeString}.`;
 
         await service.connect({
+          serverUrl,
           systemInstruction: fullInstruction,
           voiceName: VOICE_NAME,
           openaiModel: OPENAI_MODEL,

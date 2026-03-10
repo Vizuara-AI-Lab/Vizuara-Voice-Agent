@@ -4,6 +4,7 @@ export class VapiService {
   private vapi: Vapi | null = null;
   private callStartTime: number = 0;
   private callId: string | null = null;
+  private serverUrl: string = "";
 
   getCallId(): string | null {
     return this.callId;
@@ -14,6 +15,7 @@ export class VapiService {
   }
 
   async connect(config: {
+    serverUrl?: string;
     vapiPublicKey: string;
     vapiAssistantId: string;
     onTranscription?: (text: string, isUser: boolean) => void;
@@ -22,6 +24,7 @@ export class VapiService {
   }) {
     try {
       if (this.vapi) await this.disconnect();
+      this.serverUrl = config.serverUrl || "";
 
       this.callId = null;
       this.vapi = new Vapi(config.vapiPublicKey);
@@ -93,7 +96,7 @@ export class VapiService {
 
   private async reportCallEnded(durationSeconds: number, assistantId: string) {
     try {
-      await fetch("/api/vapi/call-ended", {
+      await fetch(`${this.serverUrl}/api/vapi/call-ended`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ durationSeconds, assistantId }),

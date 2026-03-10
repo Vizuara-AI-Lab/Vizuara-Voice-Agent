@@ -24,6 +24,7 @@ export class OpenAIRealtimeService {
   }
 
   async connect(config: {
+    serverUrl?: string;
     systemInstruction: string;
     voiceName: string;
     silenceDurationMs?: number;
@@ -42,7 +43,10 @@ export class OpenAIRealtimeService {
 
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
       const model = config.openaiModel || "gpt-4o-realtime-preview";
-      const wsUrl = `${protocol}//${window.location.host}/ws/openai-realtime?model=${model}`;
+      const base = config.serverUrl
+        ? config.serverUrl.replace(/^http/, "ws")
+        : `${protocol}//${window.location.host}`;
+      const wsUrl = `${base}/ws/openai-realtime?model=${model}`;
 
       this.ws = new WebSocket(wsUrl);
 

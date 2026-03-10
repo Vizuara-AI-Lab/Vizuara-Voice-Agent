@@ -1,3 +1,4 @@
+import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
 import { cert, getApps, initializeApp } from "firebase-admin/app";
@@ -241,6 +242,12 @@ async function fetchVapiAnalytics(vapiCallId: string, recordId: string) {
 
   console.warn(`[VAPI Analytics] Could not fetch analytics for ${vapiCallId} after retries`);
 }
+
+// --- CORS ---
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || "*",
+  methods: ["GET", "POST"],
+}));
 
 // --- Serve static files (production build) ---
 app.use(express.static(path.join(import.meta.dirname, "dist")));

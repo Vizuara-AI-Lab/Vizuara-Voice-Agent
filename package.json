@@ -13,6 +13,7 @@
     "@vapi-ai/web": "^2.5.2",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
+    "firebase-admin": "^13.7.0",
     "framer-motion": "^11.18.0",
     "lucide-react": "^0.546.0",
     "react": "^19.0.0",

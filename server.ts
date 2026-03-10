@@ -1,9 +1,10 @@
-import express from "express";
-import { createServer } from "http";
-import { WebSocketServer, WebSocket } from "ws";
 import dotenv from "dotenv";
+import express from "express";
+import { cert, getApps, initializeApp } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
+import { createServer } from "http";
 import path from "path";
-import fs from "fs";
+import { WebSocket, WebSocketServer } from "ws";
 
 dotenv.config({ path: ".env.local" });
 
@@ -23,12 +24,24 @@ const COST_RATES: Record<string, number> = {
   vapi: parseFloat(process.env.COST_PER_MIN_VAPI || "0.07"),
 };
 
-// --- Cost Tracker ---
 const VAPI_SERVER_API_KEY = process.env.VAPI_SERVER_API_KEY || "";
 
-const DATA_DIR = path.join(import.meta.dirname, "data");
-const COST_FILE = path.join(DATA_DIR, "cost-tracker.json");
-const CALL_RECORDS_FILE = path.join(DATA_DIR, "call-records.json");
+// --- Firestore Init ---
+if (!getApps().length) {
+  const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  if (serviceAccountJson) {
+    initializeApp({ credential: cert(JSON.parse(serviceAccountJson)) });
+  } else {
+    // Falls back to GOOGLE_APPLICATION_CREDENTIALS or GCP default credentials
+    initializeApp();
+  }
+}
+
+const db = getFirestore();
+const COST_DAYS_COL = "CostDays";
+const CALL_RECORDS_COL = "CallRecords";
+
+// --- Interfaces ---
 
 interface CallSession {
   id: string;
@@ -46,70 +59,6 @@ interface DailyData {
   totalCalls: number;
   sessions: CallSession[];
 }
-
-interface CostData {
-  [date: string]: DailyData;
-}
-
-function loadCostData(): CostData {
-  try {
-    if (fs.existsSync(COST_FILE)) {
-      return JSON.parse(fs.readFileSync(COST_FILE, "utf-8"));
-    }
-  } catch (e) {
-    console.error("[CostTracker] Failed to load cost data:", e);
-  }
-  return {};
-}
-
-function saveCostData(data: CostData) {
-  try {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true });
-    }
-    fs.writeFileSync(COST_FILE, JSON.stringify(data, null, 2));
-  } catch (e) {
-    console.error("[CostTracker] Failed to save cost data:", e);
-  }
-}
-
-function getToday(): string {
-  return new Date().toISOString().split("T")[0];
-}
-
-function getTodayCost(): number {
-  const data = loadCostData();
-  return data[getToday()]?.totalCostUsd || 0;
-}
-
-function recordSession(session: CallSession) {
-  const data = loadCostData();
-  const date = session.startTime.split("T")[0];
-
-  if (!data[date]) {
-    data[date] = { totalCostUsd: 0, totalDurationSeconds: 0, totalCalls: 0, sessions: [] };
-  }
-
-  data[date].sessions.push(session);
-  data[date].totalCalls += 1;
-  data[date].totalDurationSeconds += session.durationSeconds;
-  data[date].totalCostUsd += session.estimatedCostUsd;
-
-  // Round to avoid floating point drift
-  data[date].totalCostUsd = Math.round(data[date].totalCostUsd * 10000) / 10000;
-
-  saveCostData(data);
-  console.log(
-    `[CostTracker] Session recorded: ${session.durationSeconds}s, $${session.estimatedCostUsd.toFixed(4)} (${session.provider}/${session.model})`
-  );
-}
-
-function isDailyBudgetExceeded(): boolean {
-  if (DAILY_BUDGET_USD <= 0) return false;
-  return getTodayCost() >= DAILY_BUDGET_USD;
-}
-
-// --- Call Records (feedback + transcript + quality) ---
 
 interface TranscriptEntry {
   text: string;
@@ -150,41 +99,54 @@ interface CallRecord {
   vapiCallId: string | null;
 }
 
-function loadCallRecords(): CallRecord[] {
-  try {
-    if (fs.existsSync(CALL_RECORDS_FILE)) {
-      return JSON.parse(fs.readFileSync(CALL_RECORDS_FILE, "utf-8"));
-    }
-  } catch (e) {
-    console.error("[CallRecords] Failed to load:", e);
-  }
-  return [];
+// --- Firestore: Cost Storage ---
+
+function getToday(): string {
+  return new Date().toISOString().split("T")[0];
 }
 
-function saveCallRecords(records: CallRecord[]) {
-  try {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true });
-    }
-    fs.writeFileSync(CALL_RECORDS_FILE, JSON.stringify(records, null, 2));
-  } catch (e) {
-    console.error("[CallRecords] Failed to save:", e);
-  }
+async function getTodayCost(): Promise<number> {
+  const doc = await db.collection(COST_DAYS_COL).doc(getToday()).get();
+  if (!doc.exists) return 0;
+  return (doc.data() as DailyData).totalCostUsd || 0;
 }
 
-function addCallRecord(record: CallRecord) {
-  const records = loadCallRecords();
-  records.push(record);
-  saveCallRecords(records);
+async function recordSession(session: CallSession): Promise<void> {
+  const date = session.startTime.split("T")[0];
+  const docRef = db.collection(COST_DAYS_COL).doc(date);
+
+  await db.runTransaction(async (t) => {
+    const doc = await t.get(docRef);
+    const existing: DailyData = doc.exists
+      ? (doc.data() as DailyData)
+      : { totalCostUsd: 0, totalDurationSeconds: 0, totalCalls: 0, sessions: [] };
+
+    existing.sessions.push(session);
+    existing.totalCalls += 1;
+    existing.totalDurationSeconds += session.durationSeconds;
+    existing.totalCostUsd = Math.round((existing.totalCostUsd + session.estimatedCostUsd) * 10000) / 10000;
+
+    t.set(docRef, existing);
+  });
+
+  console.log(
+    `[CostTracker] Session recorded: ${session.durationSeconds}s, $${session.estimatedCostUsd.toFixed(4)} (${session.provider}/${session.model})`
+  );
 }
 
-function updateCallRecord(id: string, updates: Partial<CallRecord>) {
-  const records = loadCallRecords();
-  const idx = records.findIndex((r) => r.id === id);
-  if (idx >= 0) {
-    records[idx] = { ...records[idx], ...updates };
-    saveCallRecords(records);
-  }
+async function isDailyBudgetExceeded(): Promise<boolean> {
+  if (DAILY_BUDGET_USD <= 0) return false;
+  return (await getTodayCost()) >= DAILY_BUDGET_USD;
+}
+
+// --- Firestore: Call Records ---
+
+async function addCallRecord(record: CallRecord): Promise<void> {
+  await db.collection(CALL_RECORDS_COL).doc(record.id).set(record);
+}
+
+async function updateCallRecord(id: string, updates: Partial<CallRecord>): Promise<void> {
+  await db.collection(CALL_RECORDS_COL).doc(id).update(updates as Record<string, unknown>);
 }
 
 // --- Quality Scoring (rule-based, no LLM) ---
@@ -207,16 +169,13 @@ function computeQualityMetrics(transcript: TranscriptEntry[]): QualityMetrics {
   const aiTurns = transcript.filter((t) => !t.isUser);
   const totalTurns = transcript.length;
 
-  // Turn count score: 2+ user turns = good, 5+ = great
   const turnScore = Math.min(100, (userTurns.length / 5) * 100);
 
-  // Average user message length (longer = more engaged)
   const avgUserLen = userTurns.length > 0
     ? userTurns.reduce((sum, t) => sum + t.text.length, 0) / userTurns.length
     : 0;
   const lengthScore = Math.min(100, (avgUserLen / 50) * 100);
 
-  // Back-and-forth: at least some user turns
   const backForthScore = userTurns.length > 0 && aiTurns.length > 0 ? 100 : 0;
 
   const engagement = Math.round((turnScore * 0.4 + lengthScore * 0.3 + backForthScore * 0.3));
@@ -224,11 +183,9 @@ function computeQualityMetrics(transcript: TranscriptEntry[]): QualityMetrics {
   // --- Topic Coverage (30%) ---
   const allText = transcript.map((t) => t.text).join(" ").toLowerCase();
   const matchedKeywords = COURSE_KEYWORDS.filter((kw) => allText.includes(kw));
-  // 3+ keywords = great, 1-2 = decent
   const topicCoverage = Math.min(100, Math.round((matchedKeywords.length / 3) * 100));
 
   // --- Conversation Flow (30%) ---
-  // Good flow = alternating user/AI turns
   let alternations = 0;
   for (let i = 1; i < transcript.length; i++) {
     if (transcript[i].isUser !== transcript[i - 1].isUser) alternations++;
@@ -273,7 +230,7 @@ async function fetchVapiAnalytics(vapiCallId: string, recordId: string) {
           vapiCost: data.cost != null ? data.cost : null,
         };
 
-        updateCallRecord(recordId, { vapiAnalytics: analytics });
+        await updateCallRecord(recordId, { vapiAnalytics: analytics });
         console.log(`[VAPI Analytics] Fetched analytics for call ${vapiCallId}`);
         return;
       }
@@ -295,96 +252,120 @@ app.get("/api/health", (_req, res) => {
   res.json({ status: "ok" });
 });
 
-// Returns provider config + limits for the frontend
-app.get("/api/config", (_req, res) => {
-  res.json({
-    provider: VOICE_PROVIDER,
-    maxCallDurationSeconds: MAX_CALL_DURATION_SECONDS,
-    warningBeforeEndSeconds: WARNING_BEFORE_END_SECONDS,
-    dailyBudgetUsd: DAILY_BUDGET_USD || null,
-    dailyCostUsd: getTodayCost(),
-    budgetExceeded: isDailyBudgetExceeded(),
-    // VAPI public key is safe to expose to frontend
-    vapiPublicKey: VOICE_PROVIDER === "vapi" ? (process.env.VAPI_API_KEY || "") : undefined,
-    vapiAssistantId: VOICE_PROVIDER === "vapi" ? (process.env.VAPI_ASSISTANT_ID || "") : undefined,
-  });
-});
-
-// Returns daily cost data
-app.get("/api/costs", (_req, res) => {
-  const data = loadCostData();
-  // Return last 30 days
-  const days = Object.keys(data).sort().slice(-30);
-  const result: Record<string, DailyData> = {};
-  for (const day of days) {
-    const { sessions, ...summary } = data[day];
-    (result as any)[day] = { ...summary, sessionCount: sessions.length };
+app.get("/api/config", async (_req, res) => {
+  try {
+    const [dailyCostUsd, budgetExceeded] = await Promise.all([
+      getTodayCost(),
+      isDailyBudgetExceeded(),
+    ]);
+    res.json({
+      provider: VOICE_PROVIDER,
+      maxCallDurationSeconds: MAX_CALL_DURATION_SECONDS,
+      warningBeforeEndSeconds: WARNING_BEFORE_END_SECONDS,
+      dailyBudgetUsd: DAILY_BUDGET_USD || null,
+      dailyCostUsd,
+      budgetExceeded,
+      vapiPublicKey: VOICE_PROVIDER === "vapi" ? (process.env.VAPI_API_KEY || "") : undefined,
+      vapiAssistantId: VOICE_PROVIDER === "vapi" ? (process.env.VAPI_ASSISTANT_ID || "") : undefined,
+    });
+  } catch (e) {
+    console.error("[/api/config]", e);
+    res.status(500).json({ error: "Internal server error" });
   }
-  res.json(result);
 });
 
-app.get("/api/costs/today", (_req, res) => {
-  const data = loadCostData();
-  const today = getToday();
-  const todayData = data[today] || { totalCostUsd: 0, totalDurationSeconds: 0, totalCalls: 0 };
-  res.json({
-    date: today,
-    totalCostUsd: todayData.totalCostUsd,
-    totalDurationSeconds: todayData.totalDurationSeconds,
-    totalCalls: todayData.totalCalls,
-    dailyBudgetUsd: DAILY_BUDGET_USD || null,
-    budgetExceeded: isDailyBudgetExceeded(),
-  });
+app.get("/api/costs", async (_req, res) => {
+  try {
+    const snapshot = await db.collection(COST_DAYS_COL)
+      .orderBy("__name__")
+      .limitToLast(30)
+      .get();
+
+    const result: Record<string, unknown> = {};
+    for (const doc of snapshot.docs) {
+      const { sessions, ...summary } = doc.data() as DailyData;
+      result[doc.id] = { ...summary, sessionCount: sessions.length };
+    }
+    res.json(result);
+  } catch (e) {
+    console.error("[/api/costs]", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.get("/api/costs/today", async (_req, res) => {
+  try {
+    const today = getToday();
+    const doc = await db.collection(COST_DAYS_COL).doc(today).get();
+    const todayData = doc.exists
+      ? (doc.data() as DailyData)
+      : { totalCostUsd: 0, totalDurationSeconds: 0, totalCalls: 0 };
+
+    res.json({
+      date: today,
+      totalCostUsd: todayData.totalCostUsd,
+      totalDurationSeconds: todayData.totalDurationSeconds,
+      totalCalls: todayData.totalCalls,
+      dailyBudgetUsd: DAILY_BUDGET_USD || null,
+      budgetExceeded: DAILY_BUDGET_USD > 0 && todayData.totalCostUsd >= DAILY_BUDGET_USD,
+    });
+  } catch (e) {
+    console.error("[/api/costs/today]", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // --- Cost Dashboard (admin page) ---
-app.get("/admin/costs", (_req, res) => {
-  const data = loadCostData();
-  const today = getToday();
-  const days = Object.keys(data).sort().reverse().slice(0, 30);
-  const todayData = data[today] || { totalCostUsd: 0, totalDurationSeconds: 0, totalCalls: 0, sessions: [] };
+app.get("/admin/costs", async (_req, res) => {
+  try {
+    const today = getToday();
+    const snapshot = await db.collection(COST_DAYS_COL)
+      .orderBy("__name__", "desc")
+      .limit(30)
+      .get();
 
-  const fmtDuration = (s: number) => {
-    const m = Math.floor(s / 60);
-    const sec = s % 60;
-    return m > 0 ? `${m}m ${sec}s` : `${sec}s`;
-  };
+    const days = snapshot.docs.map((d) => ({ id: d.id, ...(d.data() as DailyData) }));
+    const todayData = days.find((d) => d.id === today) ||
+      { id: today, totalCostUsd: 0, totalDurationSeconds: 0, totalCalls: 0, sessions: [] };
 
-  const dailyRows = days.map((day) => {
-    const d = data[day];
-    return `<tr>
-      <td>${day}${day === today ? " (today)" : ""}</td>
+    const fmtDuration = (s: number) => {
+      const m = Math.floor(s / 60);
+      const sec = s % 60;
+      return m > 0 ? `${m}m ${sec}s` : `${sec}s`;
+    };
+
+    const dailyRows = days.map((d) => `<tr>
+      <td>${d.id}${d.id === today ? " (today)" : ""}</td>
       <td>${d.totalCalls}</td>
       <td>${fmtDuration(d.totalDurationSeconds)}</td>
       <td>$${d.totalCostUsd.toFixed(4)}</td>
-    </tr>`;
-  }).join("\n");
+    </tr>`).join("\n");
 
-  const sessionRows = todayData.sessions?.map((s: CallSession) => {
-    const start = new Date(s.startTime).toLocaleTimeString();
-    return `<tr>
-      <td>${start}</td>
-      <td>${s.provider}</td>
-      <td>${s.model}</td>
-      <td>${fmtDuration(s.durationSeconds)}</td>
-      <td>$${s.estimatedCostUsd.toFixed(4)}</td>
-    </tr>`;
-  }).join("\n") || '<tr><td colspan="5" style="text-align:center;color:#888">No calls today</td></tr>';
+    const sessionRows = todayData.sessions?.map((s: CallSession) => {
+      const start = new Date(s.startTime).toLocaleTimeString();
+      return `<tr>
+        <td>${start}</td>
+        <td>${s.provider}</td>
+        <td>${s.model}</td>
+        <td>${fmtDuration(s.durationSeconds)}</td>
+        <td>$${s.estimatedCostUsd.toFixed(4)}</td>
+      </tr>`;
+    }).join("\n") || '<tr><td colspan="5" style="text-align:center;color:#888">No calls today</td></tr>';
 
-  const totalAllTime = days.reduce((sum, d) => sum + (data[d]?.totalCostUsd || 0), 0);
-  const budgetBar = DAILY_BUDGET_USD > 0
-    ? `<div style="margin:16px 0">
-        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
-          <span>Daily Budget</span>
-          <span>$${todayData.totalCostUsd.toFixed(2)} / $${DAILY_BUDGET_USD.toFixed(2)}</span>
-        </div>
-        <div style="background:#333;border-radius:8px;height:12px;overflow:hidden">
-          <div style="background:${todayData.totalCostUsd >= DAILY_BUDGET_USD ? '#ef4444' : '#4ade80'};height:100%;width:${Math.min(100, (todayData.totalCostUsd / DAILY_BUDGET_USD) * 100)}%;border-radius:8px;transition:width 0.3s"></div>
-        </div>
-       </div>`
-    : '<p style="color:#888;font-size:13px">No daily budget set (unlimited)</p>';
+    const totalAllTime = days.reduce((sum, d) => sum + (d.totalCostUsd || 0), 0);
+    const budgetBar = DAILY_BUDGET_USD > 0
+      ? `<div style="margin:16px 0">
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+            <span>Daily Budget</span>
+            <span>$${todayData.totalCostUsd.toFixed(2)} / $${DAILY_BUDGET_USD.toFixed(2)}</span>
+          </div>
+          <div style="background:#333;border-radius:8px;height:12px;overflow:hidden">
+            <div style="background:${todayData.totalCostUsd >= DAILY_BUDGET_USD ? '#ef4444' : '#4ade80'};height:100%;width:${Math.min(100, (todayData.totalCostUsd / DAILY_BUDGET_USD) * 100)}%;border-radius:8px;transition:width 0.3s"></div>
+          </div>
+         </div>`
+      : '<p style="color:#888;font-size:13px">No daily budget set (unlimited)</p>';
 
-  res.send(`<!DOCTYPE html>
+    res.send(`<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -474,132 +455,160 @@ app.get("/admin/costs", (_req, res) => {
     <tbody>${dailyRows || '<tr><td colspan="4" style="text-align:center;color:#888">No data yet</td></tr>'}</tbody>
   </table>
 
-  <p class="refresh-note">Refresh the page to update. Data stored in data/cost-tracker.json on the server.</p>
+  <p class="refresh-note">Refresh the page to update. Data stored in Firestore.</p>
 </body>
 </html>`);
+  } catch (e) {
+    console.error("[/admin/costs]", e);
+    res.status(500).send("Internal server error");
+  }
 });
 
 // --- Call Record Endpoints ---
 
-app.post("/api/call-record", (req, res) => {
-  const { transcript, feedback, provider, durationSeconds, vapiCallId, startTime } = req.body || {};
+app.post("/api/call-record", async (req, res) => {
+  try {
+    const { transcript, feedback, provider, durationSeconds, vapiCallId, startTime } = req.body || {};
 
-  if (!Array.isArray(transcript)) {
-    return res.status(400).json({ error: "transcript array required" });
+    if (!Array.isArray(transcript)) {
+      return res.status(400).json({ error: "transcript array required" });
+    }
+
+    const recordId = `cr-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const endTime = new Date().toISOString();
+    const prov = provider === "vapi" ? "vapi" : "openai";
+
+    const transcriptEntries: TranscriptEntry[] = transcript.map((t: any) => ({
+      text: String(t.text || ""),
+      isUser: Boolean(t.isUser),
+      timestamp: t.timestamp || endTime,
+    }));
+
+    const qualityMetrics = computeQualityMetrics(transcriptEntries);
+
+    const record: CallRecord = {
+      id: recordId,
+      provider: prov,
+      startTime: startTime || new Date(Date.now() - (durationSeconds || 0) * 1000).toISOString(),
+      endTime,
+      durationSeconds: durationSeconds || 0,
+      transcript: transcriptEntries,
+      feedback: feedback ? {
+        rating: feedback.rating === "negative" ? "negative" : "positive",
+        reasons: Array.isArray(feedback.reasons) ? feedback.reasons : undefined,
+        comment: typeof feedback.comment === "string" && feedback.comment.trim() ? feedback.comment.trim() : undefined,
+      } : null,
+      qualityMetrics,
+      vapiAnalytics: null,
+      vapiCallId: vapiCallId || null,
+    };
+
+    await addCallRecord(record);
+    console.log(`[CallRecord] Saved ${recordId}: ${prov}, ${transcriptEntries.length} turns, quality=${qualityMetrics.composite}`);
+
+    // Fetch VAPI analytics in background if applicable
+    if (prov === "vapi" && vapiCallId && VAPI_SERVER_API_KEY) {
+      fetchVapiAnalytics(vapiCallId, recordId).catch((e) =>
+        console.error("[VAPI Analytics] Background fetch failed:", e)
+      );
+    }
+
+    res.json({ id: recordId, qualityMetrics });
+  } catch (e) {
+    console.error("[/api/call-record]", e);
+    res.status(500).json({ error: "Internal server error" });
   }
-
-  const recordId = `cr-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  const endTime = new Date().toISOString();
-  const prov = provider === "vapi" ? "vapi" : "openai";
-
-  const transcriptEntries: TranscriptEntry[] = transcript.map((t: any) => ({
-    text: String(t.text || ""),
-    isUser: Boolean(t.isUser),
-    timestamp: t.timestamp || endTime,
-  }));
-
-  const qualityMetrics = computeQualityMetrics(transcriptEntries);
-
-  const record: CallRecord = {
-    id: recordId,
-    provider: prov,
-    startTime: startTime || new Date(Date.now() - (durationSeconds || 0) * 1000).toISOString(),
-    endTime,
-    durationSeconds: durationSeconds || 0,
-    transcript: transcriptEntries,
-    feedback: feedback ? {
-      rating: feedback.rating === "negative" ? "negative" : "positive",
-      reasons: Array.isArray(feedback.reasons) ? feedback.reasons : undefined,
-      comment: typeof feedback.comment === "string" && feedback.comment.trim() ? feedback.comment.trim() : undefined,
-    } : null,
-    qualityMetrics,
-    vapiAnalytics: null,
-    vapiCallId: vapiCallId || null,
-  };
-
-  addCallRecord(record);
-  console.log(`[CallRecord] Saved ${recordId}: ${prov}, ${transcriptEntries.length} turns, quality=${qualityMetrics.composite}`);
-
-  // Fetch VAPI analytics in background if applicable
-  if (prov === "vapi" && vapiCallId && VAPI_SERVER_API_KEY) {
-    fetchVapiAnalytics(vapiCallId, recordId);
-  }
-
-  res.json({ id: recordId, qualityMetrics });
 });
 
-app.get("/api/call-records", (_req, res) => {
-  const records = loadCallRecords();
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+app.get("/api/call-records", async (_req, res) => {
+  try {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const snapshot = await db.collection(CALL_RECORDS_COL)
+      .where("endTime", ">=", thirtyDaysAgo)
+      .orderBy("endTime", "asc")
+      .get();
 
-  const recent = records
-    .filter((r) => r.endTime >= thirtyDaysAgo)
-    .map(({ transcript, ...rest }) => ({ ...rest, turnCount: transcript.length }));
+    const records = snapshot.docs.map((d) => {
+      const { transcript, ...rest } = d.data() as CallRecord;
+      return { ...rest, turnCount: transcript.length };
+    });
 
-  res.json(recent);
+    res.json(records);
+  } catch (e) {
+    console.error("[/api/call-records]", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
-app.get("/api/call-records/:id", (req, res) => {
-  const records = loadCallRecords();
-  const record = records.find((r) => r.id === req.params.id);
-  if (!record) return res.status(404).json({ error: "Record not found" });
-  res.json(record);
+app.get("/api/call-records/:id", async (req, res) => {
+  try {
+    const doc = await db.collection(CALL_RECORDS_COL).doc(req.params.id).get();
+    if (!doc.exists) return res.status(404).json({ error: "Record not found" });
+    res.json(doc.data());
+  } catch (e) {
+    console.error("[/api/call-records/:id]", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // --- Feedback Dashboard ---
-app.get("/admin/feedback", (_req, res) => {
-  const records = loadCallRecords();
-  const recent = records.slice(-100).reverse();
+app.get("/admin/feedback", async (_req, res) => {
+  try {
+    const allSnapshot = await db.collection(CALL_RECORDS_COL)
+      .orderBy("endTime", "asc")
+      .get();
+    const allRecords = allSnapshot.docs.map((d) => d.data() as CallRecord);
+    const recent = allRecords.slice(-100).reverse();
 
-  const totalCalls = records.length;
-  const withFeedback = records.filter((r) => r.feedback !== null);
-  const feedbackRate = totalCalls > 0 ? Math.round((withFeedback.length / totalCalls) * 100) : 0;
-  const avgQuality = totalCalls > 0
-    ? Math.round(records.reduce((sum, r) => sum + r.qualityMetrics.composite, 0) / totalCalls)
-    : 0;
-  const positiveCount = withFeedback.filter((r) => r.feedback?.rating === "positive").length;
-  const positiveRate = withFeedback.length > 0 ? Math.round((positiveCount / withFeedback.length) * 100) : 0;
+    const totalCalls = allRecords.length;
+    const withFeedback = allRecords.filter((r) => r.feedback !== null);
+    const feedbackRate = totalCalls > 0 ? Math.round((withFeedback.length / totalCalls) * 100) : 0;
+    const avgQuality = totalCalls > 0
+      ? Math.round(allRecords.reduce((sum, r) => sum + r.qualityMetrics.composite, 0) / totalCalls)
+      : 0;
+    const positiveCount = withFeedback.filter((r) => r.feedback?.rating === "positive").length;
+    const positiveRate = withFeedback.length > 0 ? Math.round((positiveCount / withFeedback.length) * 100) : 0;
 
-  const fmtDuration = (s: number) => {
-    const m = Math.floor(s / 60);
-    const sec = s % 60;
-    return m > 0 ? `${m}m ${sec}s` : `${sec}s`;
-  };
+    const fmtDuration = (s: number) => {
+      const m = Math.floor(s / 60);
+      const sec = s % 60;
+      return m > 0 ? `${m}m ${sec}s` : `${sec}s`;
+    };
 
-  const escapeHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const escapeHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-  const tableRows = recent.map((r) => {
-    const date = new Date(r.endTime).toLocaleString();
-    const ratingBadge = r.feedback
-      ? r.feedback.rating === "positive"
-        ? '<span class="badge positive">&#128077;</span>'
-        : '<span class="badge negative">&#128078;</span>'
-      : '<span class="badge skipped">—</span>';
-    const reasons = r.feedback?.reasons?.join(", ") || "";
-    const vapiSummary = r.vapiAnalytics?.summary || "";
-    const qualityColor = r.qualityMetrics.composite >= 70 ? "#4ade80" : r.qualityMetrics.composite >= 40 ? "#f59e0b" : "#f87171";
+    const tableRows = recent.map((r) => {
+      const date = new Date(r.endTime).toLocaleString();
+      const ratingBadge = r.feedback
+        ? r.feedback.rating === "positive"
+          ? '<span class="badge positive">&#128077;</span>'
+          : '<span class="badge negative">&#128078;</span>'
+        : '<span class="badge skipped">—</span>';
+      const reasons = r.feedback?.reasons?.join(", ") || "";
+      const vapiSummary = r.vapiAnalytics?.summary || "";
+      const qualityColor = r.qualityMetrics.composite >= 70 ? "#4ade80" : r.qualityMetrics.composite >= 40 ? "#f59e0b" : "#f87171";
 
-    const transcriptHtml = r.transcript.map((t) =>
-      `<p style="margin:4px 0;font-size:12px"><strong style="color:${t.isUser ? "#f472b6" : "#c084fc"}">${t.isUser ? "User" : "AI"}:</strong> ${escapeHtml(t.text)}</p>`
-    ).join("");
+      const transcriptHtml = r.transcript.map((t) =>
+        `<p style="margin:4px 0;font-size:12px"><strong style="color:${t.isUser ? "#f472b6" : "#c084fc"}">${t.isUser ? "User" : "AI"}:</strong> ${escapeHtml(t.text)}</p>`
+      ).join("");
 
-    return `<tr>
-      <td>${date}</td>
-      <td><span class="badge ${r.provider}">${r.provider.toUpperCase()}</span></td>
-      <td>${fmtDuration(r.durationSeconds)}</td>
-      <td style="color:${qualityColor};font-weight:700">${r.qualityMetrics.composite}</td>
-      <td>${ratingBadge}</td>
-      <td style="font-size:12px;color:#a3a3a3">${escapeHtml(reasons)}</td>
-      <td style="font-size:12px;color:#a3a3a3;max-width:300px">${escapeHtml(vapiSummary)}</td>
-      <td>
-        <details><summary style="cursor:pointer;color:#c084fc;font-size:11px">View</summary>
-          <div style="max-height:200px;overflow-y:auto;padding:8px;background:#0a0a0a;border-radius:6px;margin-top:4px">${transcriptHtml}</div>
-        </details>
-      </td>
-    </tr>`;
-  }).join("\n");
+      return `<tr>
+        <td>${date}</td>
+        <td><span class="badge ${r.provider}">${r.provider.toUpperCase()}</span></td>
+        <td>${fmtDuration(r.durationSeconds)}</td>
+        <td style="color:${qualityColor};font-weight:700">${r.qualityMetrics.composite}</td>
+        <td>${ratingBadge}</td>
+        <td style="font-size:12px;color:#a3a3a3">${escapeHtml(reasons)}</td>
+        <td style="font-size:12px;color:#a3a3a3;max-width:300px">${escapeHtml(vapiSummary)}</td>
+        <td>
+          <details><summary style="cursor:pointer;color:#c084fc;font-size:11px">View</summary>
+            <div style="max-height:200px;overflow-y:auto;padding:8px;background:#0a0a0a;border-radius:6px;margin-top:4px">${transcriptHtml}</div>
+          </details>
+        </td>
+      </tr>`;
+    }).join("\n");
 
-  res.send(`<!DOCTYPE html>
+    res.send(`<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -665,9 +674,13 @@ app.get("/admin/feedback", (_req, res) => {
     <tbody>${tableRows || '<tr><td colspan="8" style="text-align:center;color:#888">No call records yet</td></tr>'}</tbody>
   </table>
 
-  <p class="refresh-note">Refresh to update. Data stored in data/call-records.json on the server.</p>
+  <p class="refresh-note">Refresh to update. Data stored in Firestore.</p>
 </body>
 </html>`);
+  } catch (e) {
+    console.error("[/admin/feedback]", e);
+    res.status(500).send("Internal server error");
+  }
 });
 
 // --- SPA fallback ---
@@ -690,9 +703,9 @@ httpServer.on("upgrade", (request, socket, head) => {
 });
 
 // --- OpenAI Realtime Proxy (with cost tracking + time cap) ---
-wss.on("connection", (clientWs, req) => {
+wss.on("connection", async (clientWs, req) => {
   // Check daily budget before allowing connection
-  if (isDailyBudgetExceeded()) {
+  if (await isDailyBudgetExceeded()) {
     clientWs.send(
       JSON.stringify({
         type: "proxy.error",
@@ -742,7 +755,6 @@ wss.on("connection", (clientWs, req) => {
     endSession("time_limit");
   }, MAX_CALL_DURATION_SECONDS * 1000);
 
-  // Warning before time limit
   const warningTimer = setTimeout(() => {
     if (clientWs.readyState === WebSocket.OPEN) {
       clientWs.send(
@@ -755,7 +767,7 @@ wss.on("connection", (clientWs, req) => {
     }
   }, (MAX_CALL_DURATION_SECONDS - WARNING_BEFORE_END_SECONDS) * 1000);
 
-  function endSession(reason: string) {
+  async function endSession(reason: string) {
     if (sessionEnded) return;
     sessionEnded = true;
 
@@ -767,7 +779,7 @@ wss.on("connection", (clientWs, req) => {
     const costPerMin = COST_RATES[model] || 0.15;
     const estimatedCostUsd = Math.round((durationSeconds / 60) * costPerMin * 10000) / 10000;
 
-    recordSession({
+    await recordSession({
       id: sessionId,
       startTime: sessionStartTime.toISOString(),
       endTime: endTime.toISOString(),
@@ -818,7 +830,7 @@ wss.on("connection", (clientWs, req) => {
 
   upstream.on("close", (code, reason) => {
     console.log(`[OpenAI Proxy] Upstream closed: ${code} ${reason}`);
-    endSession("upstream_closed");
+    endSession("upstream_closed").catch(console.error);
   });
 
   upstream.on("error", (err) => {
@@ -826,7 +838,7 @@ wss.on("connection", (clientWs, req) => {
     if (clientWs.readyState === WebSocket.OPEN) {
       clientWs.send(JSON.stringify({ type: "proxy.error", error: err.message }));
     }
-    endSession("upstream_error");
+    endSession("upstream_error").catch(console.error);
   });
 
   clientWs.on("message", (data) => {
@@ -846,32 +858,36 @@ wss.on("connection", (clientWs, req) => {
 
   clientWs.on("close", () => {
     console.log("[OpenAI Proxy] Client disconnected");
-    endSession("client_disconnected");
+    endSession("client_disconnected").catch(console.error);
   });
 });
 
 // --- VAPI call cost tracking endpoint ---
-// When using VAPI, the frontend reports call duration so the server can track costs
-app.post("/api/vapi/call-ended", (req, res) => {
-  const { durationSeconds, assistantId } = req.body || {};
-  if (typeof durationSeconds !== "number" || durationSeconds <= 0) {
-    return res.status(400).json({ error: "Invalid durationSeconds" });
+app.post("/api/vapi/call-ended", async (req, res) => {
+  try {
+    const { durationSeconds, assistantId } = req.body || {};
+    if (typeof durationSeconds !== "number" || durationSeconds <= 0) {
+      return res.status(400).json({ error: "Invalid durationSeconds" });
+    }
+
+    const costPerMin = COST_RATES.vapi || 0.07;
+    const estimatedCostUsd = Math.round((durationSeconds / 60) * costPerMin * 10000) / 10000;
+
+    await recordSession({
+      id: `vapi-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      startTime: new Date(Date.now() - durationSeconds * 1000).toISOString(),
+      endTime: new Date().toISOString(),
+      durationSeconds,
+      model: assistantId || "vapi-assistant",
+      provider: "vapi",
+      estimatedCostUsd,
+    });
+
+    res.json({ recorded: true, estimatedCostUsd });
+  } catch (e) {
+    console.error("[/api/vapi/call-ended]", e);
+    res.status(500).json({ error: "Internal server error" });
   }
-
-  const costPerMin = COST_RATES.vapi || 0.07;
-  const estimatedCostUsd = Math.round((durationSeconds / 60) * costPerMin * 10000) / 10000;
-
-  recordSession({
-    id: `vapi-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    startTime: new Date(Date.now() - durationSeconds * 1000).toISOString(),
-    endTime: new Date().toISOString(),
-    durationSeconds,
-    model: assistantId || "vapi-assistant",
-    provider: "vapi",
-    estimatedCostUsd,
-  });
-
-  res.json({ recorded: true, estimatedCostUsd });
 });
 
 httpServer.listen(PORT, () => {
@@ -880,7 +896,6 @@ httpServer.listen(PORT, () => {
   console.log(`  Max call duration: ${MAX_CALL_DURATION_SECONDS}s`);
   if (DAILY_BUDGET_USD > 0) {
     console.log(`  Daily budget: $${DAILY_BUDGET_USD}`);
-    console.log(`  Today's spend: $${getTodayCost().toFixed(4)}`);
   }
   console.log();
 });

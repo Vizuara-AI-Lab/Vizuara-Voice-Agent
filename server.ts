@@ -284,12 +284,12 @@ app.get("/api/config", async (_req, res) => {
 app.get("/api/costs", async (_req, res) => {
   try {
     const snapshot = await db.collection(COST_DAYS_COL)
-      .orderBy("__name__")
-      .limitToLast(30)
+      .orderBy("__name__", "desc")
+      .limit(30)
       .get();
 
     const result: Record<string, unknown> = {};
-    for (const doc of snapshot.docs) {
+    for (const doc of snapshot.docs.reverse()) {
       const { sessions, ...summary } = doc.data() as DailyData;
       result[doc.id] = { ...summary, sessionCount: sessions.length };
     }

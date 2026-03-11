@@ -502,8 +502,8 @@ app.post("/api/call-record", async (req, res) => {
       transcript: transcriptEntries,
       feedback: feedback ? {
         rating: feedback.rating === "negative" ? "negative" : "positive",
-        reasons: Array.isArray(feedback.reasons) ? feedback.reasons : undefined,
-        comment: typeof feedback.comment === "string" && feedback.comment.trim() ? feedback.comment.trim() : undefined,
+        ...(Array.isArray(feedback.reasons) && feedback.reasons.length > 0 ? { reasons: feedback.reasons } : {}),
+        ...(typeof feedback.comment === "string" && feedback.comment.trim() ? { comment: feedback.comment.trim() } : {}),
       } : null,
       qualityMetrics,
       vapiAnalytics: null,

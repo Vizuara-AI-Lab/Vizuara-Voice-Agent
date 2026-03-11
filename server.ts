@@ -349,7 +349,7 @@ app.get("/admin/costs", async (_req, res) => {
     </tr>`).join("\n");
 
     const sessionRows = todayData.sessions?.map((s: CallSession) => {
-      const start = new Date(s.startTime).toLocaleTimeString();
+      const start = new Date(s.startTime).toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata" });
       return `<tr>
         <td>${start}</td>
         <td>${s.provider}</td>
@@ -585,7 +585,7 @@ app.get("/admin/feedback", async (_req, res) => {
     const escapeHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
     const tableRows = recent.map((r) => {
-      const date = new Date(r.endTime).toLocaleString();
+      const date = new Date(r.endTime).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
       const ratingBadge = r.feedback
         ? r.feedback.rating === "positive"
           ? '<span class="badge positive">&#128077;</span>'

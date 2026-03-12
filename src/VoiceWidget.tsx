@@ -72,6 +72,9 @@ const COURSE_LINKS: { name: string; url: string; price?: string; keywords: strin
   { name: "10-Course AI & ML Bundle", url: "https://complete-pathway.vizuara.ai/", keywords: ["10-course", "10 course", "complete pathway", "ai and ml bundle"] },
   { name: "Vizz AI Tutor", url: "https://vizz.vizuara.ai/", keywords: ["vizz ai", "ai tutor", "vizz"] },
   { name: "High School AI Research", url: "https://ai-highschool-research.vizuara.ai/", keywords: ["high school", "highschool research"] },
+  { name: "VLA & World Models Bootcamp", url: "https://vla.vizuara.ai/", keywords: ["vla model", "world model", "vision language action", "vla bootcamp"] },
+  { name: "Modern Software Developer Bootcamp", url: "https://modern-software-dev.vizuara.ai/", keywords: ["modern software developer", "software developer bootcamp", "vibe coding", "coding agent", "ai-powered development"] },
+  { name: "VLA for Autonomous Driving", url: "https://robotlearningmastery.vizuara.ai/", keywords: ["autonomous driving", "self-driving", "vla driving", "toy car", "autonomous driving bootcamp"] },
 ];
 
 const DOMAIN_TO_COURSE = new Map<string, (typeof COURSE_LINKS)[number]>();

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Phone, Bot, Loader2, ExternalLink, Mail, Copy, CheckCheck, ChevronDown, AlertTriangle, ThumbsUp, ThumbsDown, X, CheckCircle } from "lucide-react";
 import { OpenAIRealtimeService } from "./services/OpenAIRealtimeService";
@@ -52,54 +52,31 @@ const OPENAI_MODEL = "gpt-4o-realtime-preview";
 
 // ─── Course Links Detection ─────────────────────────────────────────────────
 
-const COURSE_LINKS: { name: string; url: string; price?: string; keywords: string[] }[] = [
-  { name: "Minor in AI", url: "https://minor.vizuara.ai/", keywords: ["minor in ai", "minor in artificial intelligence"] },
-  { name: "Minor in GenAI", url: "https://genai-minor.vizuara.ai/", keywords: ["minor in genai", "genai minor", "generative ai minor", "minor in generative ai", "minor in generative artificial intelligence"] },
-  { name: "Minor in Robotics", url: "https://minor-robotics.vizuara.ai/", keywords: ["minor in robotics", "robotics minor", "minor in robot"] },
-  { name: "Combined Minors", url: "https://minors.vizuara.ai/", keywords: ["combined minor", "both minors"] },
-  { name: "RL Research Bootcamp", url: "https://rlresearcherbootcamp.vizuara.ai/", keywords: ["reinforcement learning", "rl research", "rl bootcamp"] },
-  { name: "Hands-on RL Bootcamp", url: "https://hands-on-rl.vizuara.ai/", keywords: ["hands-on rl", "hands on reinforcement"] },
-  { name: "CV Research Bootcamp", url: "https://cvresearchbootcamp.vizuara.ai/", keywords: ["cv research", "computer vision research", "computer vision bootcamp"] },
-  { name: "Hands-on CV Bootcamp", url: "https://hands-on-cv.vizuara.ai/", keywords: ["hands-on cv", "hands on computer vision"] },
-  { name: "Vision LLMs Bootcamp", url: "https://vision-transformer.vizuara.ai/", keywords: ["vision llm", "vision transformer"] },
-  { name: "Robot Learning Bootcamp", url: "https://robotlearningbootcamp.vizuara.ai/", price: "\u20B925,000", keywords: ["robot learning"] },
-  { name: "GPU Engineers Bootcamp", url: "https://5d-parallelism.vizuara.ai/", price: "from \u20B910,000", keywords: ["gpu engineer", "5d parallelism", "gpu bootcamp"] },
-  { name: "AI Agents Bootcamp", url: "https://agentsbootcamp.vizuara.ai/", keywords: ["ai agents bootcamp", "agents bootcamp"] },
-  { name: "3-in-1 AI Bootcamp", url: "https://3-in-1.vizuara.ai/", keywords: ["3-in-1", "3 in 1 bootcamp"] },
-  { name: "Context Engineering Workshop", url: "https://context-engineering.vizuara.ai/", keywords: ["context engineering"] },
-  { name: "Build SLM Workshop", url: "https://slm.vizuara.ai/", keywords: ["build slm", "slm workshop", "small language model"] },
-  { name: "AI Pods", url: "https://pods.vizuara.ai/", keywords: ["ai pods", "pods"] },
-  { name: "10-Course AI & ML Bundle", url: "https://complete-pathway.vizuara.ai/", keywords: ["10-course", "10 course", "complete pathway", "ai and ml bundle"] },
-  { name: "Vizz AI Tutor", url: "https://vizz.vizuara.ai/", keywords: ["vizz ai", "ai tutor", "vizz"] },
-  { name: "High School AI Research", url: "https://ai-highschool-research.vizuara.ai/", keywords: ["high school", "highschool research"] },
-  { name: "VLA & World Models Bootcamp", url: "https://vla.vizuara.ai/", keywords: ["vla model", "world model", "vision language action", "vla bootcamp"] },
-  { name: "Modern Software Developer Bootcamp", url: "https://modern-software-dev.vizuara.ai/", keywords: ["modern software developer", "software developer bootcamp", "vibe coding", "coding agent", "ai-powered development"] },
-  { name: "VLA for Autonomous Driving", url: "https://robotlearningmastery.vizuara.ai/", keywords: ["autonomous driving", "self-driving", "vla driving", "toy car", "autonomous driving bootcamp"] },
-];
+type CourseLink = { name: string; url: string; price?: string; keywords: string[] };
 
-const DOMAIN_TO_COURSE = new Map<string, (typeof COURSE_LINKS)[number]>();
-COURSE_LINKS.forEach((c) => {
-  try { DOMAIN_TO_COURSE.set(new URL(c.url).hostname, c); } catch {}
-});
-
-function detectCourseLinks(transcription: { text: string; isUser: boolean }[]): typeof COURSE_LINKS {
+function detectCourseLinks(transcription: { text: string; isUser: boolean }[], courseLinks: CourseLink[]): CourseLink[] {
   const aiText = transcription.filter((t) => !t.isUser).map((t) => t.text).join(" ").toLowerCase();
   const userText = transcription.filter((t) => t.isUser).map((t) => t.text).join(" ").toLowerCase();
   const allText = aiText + " " + userText;
 
-  const matched = new Map<string, (typeof COURSE_LINKS)[number]>();
+  const matched = new Map<string, CourseLink>();
 
-  for (const course of COURSE_LINKS) {
+  for (const course of courseLinks) {
     if (course.keywords.some((k) => allText.includes(k))) {
       matched.set(course.url, course);
     }
   }
 
+  const domainToCourse = new Map<string, CourseLink>();
+  courseLinks.forEach((c) => {
+    try { domainToCourse.set(new URL(c.url).hostname, c); } catch {}
+  });
+
   const domainRegex = /([a-z0-9-]+\.vizuara\.ai)/g;
   let m;
   while ((m = domainRegex.exec(aiText)) !== null) {
     const domain = m[1].replace(/\/+$/, "");
-    const found = DOMAIN_TO_COURSE.get(domain);
+    const found = domainToCourse.get(domain);
     if (found) matched.set(found.url, found);
   }
 
@@ -212,6 +189,15 @@ export default function VoiceWidget({ serverUrl = "" }: { serverUrl?: string }) 
   const [feedbackComment, setFeedbackComment] = useState("");
   const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
   const [feedbackThankYou, setFeedbackThankYou] = useState(false);
+
+  // Dynamic course links — fetched from server (auto-updated when courses are added)
+  const [courseLinks, setCourseLinks] = useState<CourseLink[]>([]);
+  useEffect(() => {
+    fetch(`${serverUrl}/api/course-links`)
+      .then((r) => r.json())
+      .then((data) => { if (Array.isArray(data)) setCourseLinks(data); })
+      .catch(() => {});
+  }, [serverUrl]);
 
   const openaiServiceRef = React.useRef<OpenAIRealtimeService | null>(null);
   const vapiServiceRef = React.useRef<VapiService | null>(null);
@@ -523,15 +509,15 @@ export default function VoiceWidget({ serverUrl = "" }: { serverUrl?: string }) 
 
   // Derive suggested course links
   const suggestedLinks = useMemo(() => {
-    if (transcription.length === 0) return [];
-    const detected = detectCourseLinks(transcription);
+    if (transcription.length === 0 || courseLinks.length === 0) return [];
+    const detected = detectCourseLinks(transcription, courseLinks);
     if (detected.length === 0) return [];
     const askedForLink = userAsksForLink(transcription);
     const aiMentionedCourse = transcription.some(
       (t) => !t.isUser && detected.some((c) => c.keywords.some((k) => t.text.toLowerCase().includes(k)))
     );
     return askedForLink || aiMentionedCourse ? detected : [];
-  }, [transcription]);
+  }, [transcription, courseLinks]);
 
   // Detect email draft
   const emailDraft = useMemo(() => detectEmailDraft(transcription), [transcription]);

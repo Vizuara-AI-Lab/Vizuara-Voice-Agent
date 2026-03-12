@@ -29,8 +29,9 @@ const COST_RATES: Record<string, number> = {
 
 const VAPI_SERVER_API_KEY = process.env.VAPI_SERVER_API_KEY || "";
 
-// --- Knowledge Base Path ---
+// --- Knowledge Base & Course Links Paths ---
 const KNOWLEDGE_BASE_PATH = path.join(import.meta.dirname, "src", "knowledge-base.txt");
+const COURSE_LINKS_PATH = path.join(import.meta.dirname, "src", "course-links.json");
 
 // --- Firestore Init ---
 if (!getApps().length) {
@@ -770,10 +771,23 @@ app.post("/api/knowledge-base/generate-section", async (req, res) => {
   }
 });
 
+// GET /api/course-links — return all course links (used by widget for suggested links)
+app.get("/api/course-links", (_req, res) => {
+  try {
+    const links = fs.existsSync(COURSE_LINKS_PATH)
+      ? JSON.parse(fs.readFileSync(COURSE_LINKS_PATH, "utf-8"))
+      : [];
+    res.json(links);
+  } catch (err: any) {
+    console.error("[CourseLinks] Read error:", err.message);
+    res.json([]);
+  }
+});
+
 // POST /api/knowledge-base/append — append a section to knowledge-base.txt
 app.post("/api/knowledge-base/append", async (req, res) => {
   try {
-    const { section, syncToVapi } = req.body;
+    const { section, syncToVapi, courseLink } = req.body;
     if (!section) return res.status(400).json({ error: "section is required" });
 
     const existingKB = fs.existsSync(KNOWLEDGE_BASE_PATH)
@@ -782,6 +796,25 @@ app.post("/api/knowledge-base/append", async (req, res) => {
     const updatedKB = existingKB.trim() + separator + section.trim() + "\n";
     fs.writeFileSync(KNOWLEDGE_BASE_PATH, updatedKB);
     console.log(`[Course] Appended ${section.length} chars to KB (total: ${updatedKB.length})`);
+
+    // Auto-register suggested link if courseLink provided
+    let linkAdded = false;
+    if (courseLink?.name && courseLink?.url && courseLink?.keywords?.length) {
+      try {
+        const links = fs.existsSync(COURSE_LINKS_PATH)
+          ? JSON.parse(fs.readFileSync(COURSE_LINKS_PATH, "utf-8"))
+          : [];
+        const exists = links.some((l: any) => l.url === courseLink.url);
+        if (!exists) {
+          links.push({ name: courseLink.name, url: courseLink.url, keywords: courseLink.keywords });
+          fs.writeFileSync(COURSE_LINKS_PATH, JSON.stringify(links, null, 2) + "\n");
+          linkAdded = true;
+          console.log(`[Course] Added suggested link: ${courseLink.name} → ${courseLink.url}`);
+        }
+      } catch (e: any) {
+        console.warn("[Course] Failed to add suggested link:", e.message);
+      }
+    }
 
     let synced = false;
     if (syncToVapi) {
@@ -808,7 +841,7 @@ app.post("/api/knowledge-base/append", async (req, res) => {
       }
     }
 
-    res.json({ success: true, totalKBChars: updatedKB.length, synced });
+    res.json({ success: true, totalKBChars: updatedKB.length, synced, linkAdded });
   } catch (err: any) {
     console.error("[Course] Append error:", err.message);
     res.status(500).json({ error: err.message });
@@ -1182,11 +1215,28 @@ app.get("/admin/add-course", (_req, res) => {
       const section = document.getElementById('generated-section').value.trim();
       if (!section) return showStatus('No section to append', 'error');
 
+      // Build courseLink from form data for automatic suggested link registration
+      const courseName = document.getElementById('course-name').value.trim();
+      const websiteUrl = document.getElementById('website-url').value.trim();
+      let courseLink = null;
+      if (courseName && websiteUrl) {
+        // Auto-generate keywords from course name words (lowercase, 2+ chars)
+        const nameWords = courseName.toLowerCase().split(/[^a-z0-9]+/).filter(w => w.length > 2);
+        const keywords = [courseName.toLowerCase()];
+        // Add 2-3 word subphrases as keywords
+        const words = courseName.toLowerCase().split(/\\s+/);
+        for (let i = 0; i < words.length - 1; i++) {
+          keywords.push(words.slice(i, i + 2).join(' '));
+          if (i < words.length - 2) keywords.push(words.slice(i, i + 3).join(' '));
+        }
+        courseLink = { name: courseName, url: websiteUrl, keywords: [...new Set(keywords)] };
+      }
+
       try {
         const res = await fetch('/api/knowledge-base/append', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ section, syncToVapi })
+          body: JSON.stringify({ section, syncToVapi, courseLink })
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error);
@@ -1194,6 +1244,7 @@ app.get("/admin/add-course", (_req, res) => {
         const details = document.getElementById('save-details');
         details.innerHTML = '<p>Section appended to knowledge base.</p>' +
           '<p style="margin-top:8px"><strong>Total KB size:</strong> ' + data.totalKBChars.toLocaleString() + ' chars</p>' +
+          (data.linkAdded ? '<p style="color:#a5b4fc;margin-top:4px">Suggested link registered for voice widget.</p>' : '') +
           (data.synced ? '<p style="color:#6ee7b7;margin-top:4px">Synced to VAPI assistant.</p>' : '<p style="color:#888;margin-top:4px">Not synced to VAPI (set VAPI_SERVER_API_KEY and VAPI_ASSISTANT_ID to enable).</p>');
         document.getElementById('save-result').style.display = 'block';
         showStatus('Course added successfully!', 'success');

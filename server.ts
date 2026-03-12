@@ -527,6 +527,29 @@ app.post("/api/call-record", async (req, res) => {
   }
 });
 
+app.patch("/api/call-record/:id/feedback", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { rating, reasons, comment } = req.body || {};
+
+    if (!rating || (rating !== "positive" && rating !== "negative")) {
+      return res.status(400).json({ error: "rating must be 'positive' or 'negative'" });
+    }
+
+    const feedback: CallFeedback = {
+      rating,
+      ...(Array.isArray(reasons) && reasons.length > 0 ? { reasons } : {}),
+      ...(typeof comment === "string" && comment.trim() ? { comment: comment.trim() } : {}),
+    };
+
+    await updateCallRecord(id, { feedback });
+    res.json({ ok: true });
+  } catch (e) {
+    console.error("[/api/call-record/:id/feedback]", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 app.get("/api/call-records", async (_req, res) => {
   try {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();

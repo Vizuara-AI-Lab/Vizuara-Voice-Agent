@@ -175,7 +175,7 @@ interface ServerConfig {
 }
 
 const DEFAULT_CONFIG: ServerConfig = {
-  provider: "openai",
+  provider: "vapi",
   maxCallDurationSeconds: 300,
   warningBeforeEndSeconds: 30,
   dailyBudgetUsd: null,
@@ -220,6 +220,7 @@ export default function VoiceWidget({ serverUrl = "" }: { serverUrl?: string }) 
   // Full transcript (never trimmed) for server submission
   const fullTranscriptRef = React.useRef<{ text: string; isUser: boolean; timestamp: string }[]>([]);
   const callStartTimeRef = React.useRef<string>("");
+  const callRecordIdRef = React.useRef<string | null>(null);
 
   const getOpenAIService = () => {
     if (!openaiServiceRef.current) openaiServiceRef.current = new OpenAIRealtimeService();
@@ -276,32 +277,48 @@ export default function VoiceWidget({ serverUrl = "" }: { serverUrl?: string }) 
     setFeedbackThankYou(false);
   };
 
-  const submitCallRecord = async (feedback: { rating: "positive" | "negative"; reasons?: string[]; comment?: string } | null) => {
+  const submitCallRecord = async () => {
     const config = configRef.current;
     const vapiCallId = config.provider === "vapi" ? getVapiService().getCallId() : null;
 
     try {
-      await fetch(`${serverUrl}/api/call-record`, {
+      const res = await fetch(`${serverUrl}/api/call-record`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           transcript: fullTranscriptRef.current,
-          feedback,
+          feedback: null,
           provider: config.provider,
           durationSeconds: elapsed,
           vapiCallId,
           startTime: callStartTimeRef.current,
         }),
       });
+      const data = await res.json();
+      if (data.id) callRecordIdRef.current = data.id;
     } catch (e) {
       console.warn("[VoiceWidget] Failed to submit call record:", e);
+    }
+  };
+
+  const submitFeedback = async (feedback: { rating: "positive" | "negative"; reasons?: string[]; comment?: string }) => {
+    const id = callRecordIdRef.current;
+    if (!id) return;
+    try {
+      await fetch(`${serverUrl}/api/call-record/${id}/feedback`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(feedback),
+      });
+    } catch (e) {
+      console.warn("[VoiceWidget] Failed to submit feedback:", e);
     }
   };
 
   const handleFeedbackPositive = async () => {
     setFeedbackRating("positive");
     setFeedbackSubmitting(true);
-    await submitCallRecord({ rating: "positive" });
+    await submitFeedback({ rating: "positive" });
     setFeedbackSubmitting(false);
     setFeedbackThankYou(true);
     setTimeout(() => {
@@ -317,7 +334,7 @@ export default function VoiceWidget({ serverUrl = "" }: { serverUrl?: string }) 
 
   const handleFeedbackSubmitNegative = async () => {
     setFeedbackSubmitting(true);
-    await submitCallRecord({
+    await submitFeedback({
       rating: "negative",
       reasons: feedbackReasons.length > 0 ? feedbackReasons : undefined,
       comment: feedbackComment.trim() || undefined,
@@ -331,8 +348,7 @@ export default function VoiceWidget({ serverUrl = "" }: { serverUrl?: string }) 
     }, 1500);
   };
 
-  const handleFeedbackSkip = async () => {
-    await submitCallRecord(null);
+  const handleFeedbackSkip = () => {
     setCallState("idle");
     setTranscription([]);
     resetFeedbackState();
@@ -344,6 +360,19 @@ export default function VoiceWidget({ serverUrl = "" }: { serverUrl?: string }) 
     );
   };
 
+  const finalizeCall = () => {
+    clearTimers();
+    setVolume(0);
+    setTimeWarning(false);
+    if (fullTranscriptRef.current.length > 0) {
+      submitCallRecord();
+      setCallState("feedback");
+    } else {
+      setCallState("idle");
+      setTranscription([]);
+    }
+  };
+
   const startCall = async () => {
     endingRef.current = false;
     setCallState("connecting");
@@ -351,6 +380,7 @@ export default function VoiceWidget({ serverUrl = "" }: { serverUrl?: string }) 
     setTimeWarning(false);
     fullTranscriptRef.current = [];
     callStartTimeRef.current = new Date().toISOString();
+    callRecordIdRef.current = null;
     resetFeedbackState();
 
     const config = await fetchConfig();
@@ -376,9 +406,8 @@ export default function VoiceWidget({ serverUrl = "" }: { serverUrl?: string }) 
               setCallState("connected");
               startTimers(config);
             } else if (s === "error" || s === "disconnected") {
-              setCallState("idle");
-              clearTimers();
               if (err) console.error("[VoiceWidget] VAPI Error:", err);
+              finalizeCall();
             }
           },
           onTranscription: (text, isUser) => {
@@ -410,9 +439,8 @@ export default function VoiceWidget({ serverUrl = "" }: { serverUrl?: string }) 
               setCallState("connected");
               startTimers(config);
             } else if (s === "error" || s === "disconnected") {
-              setCallState("idle");
-              clearTimers();
               if (err) console.error("[VoiceWidget] Error:", err);
+              finalizeCall();
             }
           },
           onTranscription: (text, isUser) => {
@@ -446,16 +474,7 @@ export default function VoiceWidget({ serverUrl = "" }: { serverUrl?: string }) 
       await getOpenAIService().disconnect();
     }
 
-    setVolume(0);
-    setTimeWarning(false);
-
-    // Show feedback screen if there was any conversation
-    if (fullTranscriptRef.current.length > 0) {
-      setCallState("feedback");
-    } else {
-      setCallState("idle");
-      setTranscription([]);
-    }
+    finalizeCall();
   };
 
   const handleClick = () => {

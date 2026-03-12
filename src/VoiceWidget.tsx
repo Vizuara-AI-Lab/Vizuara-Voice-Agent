@@ -4,6 +4,7 @@ import { Phone, Bot, Loader2, ExternalLink, Mail, Copy, CheckCheck, ChevronDown,
 import { OpenAIRealtimeService } from "./services/OpenAIRealtimeService";
 import { VapiService } from "./services/VapiService";
 import KNOWLEDGE_BASE from "./knowledge-base.txt?raw";
+import DEFAULT_COURSE_LINKS from "./course-links.json";
 
 // ─── Configuration ──────────────────────────────────────────────────────────
 // Edit these to customize the widget for your website.
@@ -190,12 +191,12 @@ export default function VoiceWidget({ serverUrl = "" }: { serverUrl?: string }) 
   const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
   const [feedbackThankYou, setFeedbackThankYou] = useState(false);
 
-  // Dynamic course links — fetched from server (auto-updated when courses are added)
-  const [courseLinks, setCourseLinks] = useState<CourseLink[]>([]);
+  // Course links — bundled defaults + live update from server (picks up newly added courses)
+  const [courseLinks, setCourseLinks] = useState<CourseLink[]>(DEFAULT_COURSE_LINKS as CourseLink[]);
   useEffect(() => {
     fetch(`${serverUrl}/api/course-links`)
       .then((r) => r.json())
-      .then((data) => { if (Array.isArray(data)) setCourseLinks(data); })
+      .then((data) => { if (Array.isArray(data) && data.length > 0) setCourseLinks(data); })
       .catch(() => {});
   }, [serverUrl]);
 

@@ -3,9 +3,11 @@ import dotenv from "dotenv";
 import express from "express";
 import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
+import fs from "fs";
 import { createServer } from "http";
 import path from "path";
 import { WebSocket, WebSocketServer } from "ws";
+import { fetchYouTubeTranscript, generateCourseSection, scrapeWebsite } from "./server/courseGenerator.js";
 
 dotenv.config({ path: ".env.local" });
 
@@ -26,6 +28,9 @@ const COST_RATES: Record<string, number> = {
 };
 
 const VAPI_SERVER_API_KEY = process.env.VAPI_SERVER_API_KEY || "";
+
+// --- Knowledge Base Path ---
+const KNOWLEDGE_BASE_PATH = path.join(import.meta.dirname, "src", "knowledge-base.txt");
 
 // --- Firestore Init ---
 if (!getApps().length) {
@@ -403,9 +408,13 @@ app.get("/admin/costs", async (_req, res) => {
     .config-item .key { color: #737373; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
     .config-item .val { margin-top: 2px; font-weight: 600; }
     .refresh-note { color: #525252; font-size: 12px; margin-top: 24px; text-align: center; }
+    .nav { margin-bottom: 24px; }
+    .nav a { color: #c084fc; font-size: 13px; text-decoration: none; margin-right: 16px; }
+    .nav a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
+  <div class="nav"><a href="/admin/costs">Cost Dashboard</a> <a href="/admin/feedback">Feedback Dashboard</a> <a href="/admin/add-course">Add Course</a></div>
   <h1>Voice Agent Cost Dashboard</h1>
   <p class="subtitle">Vizuara AI Labs — Real-time cost tracking</p>
 
@@ -674,7 +683,7 @@ app.get("/admin/feedback", async (_req, res) => {
   </style>
 </head>
 <body>
-  <div class="nav"><a href="/admin/costs">Cost Dashboard</a> <a href="/admin/feedback">Feedback Dashboard</a></div>
+  <div class="nav"><a href="/admin/costs">Cost Dashboard</a> <a href="/admin/feedback">Feedback Dashboard</a> <a href="/admin/add-course">Add Course</a></div>
   <h1>Feedback &amp; Quality Dashboard</h1>
   <p class="subtitle">Vizuara AI Labs — Conversation quality tracking</p>
 
@@ -711,6 +720,513 @@ app.get("/admin/feedback", async (_req, res) => {
     console.error("[/admin/feedback]", e);
     res.status(500).send("Internal server error");
   }
+});
+
+// --- Course Generator API Endpoints ---
+
+// POST /api/youtube/transcript — extract captions from a YouTube video
+app.post("/api/youtube/transcript", async (req, res) => {
+  try {
+    const { url } = req.body;
+    if (!url) return res.status(400).json({ error: "url is required" });
+    const result = await fetchYouTubeTranscript(url);
+    res.json(result);
+  } catch (err: any) {
+    console.error("[Course] Transcript error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/website/scrape — scrape a website URL for course info
+app.post("/api/website/scrape", async (req, res) => {
+  try {
+    const { url } = req.body;
+    if (!url) return res.status(400).json({ error: "url is required" });
+    const content = await scrapeWebsite(url);
+    res.json({ content, charCount: content.length });
+  } catch (err: any) {
+    console.error("[Scrape] Error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/knowledge-base/generate-section — LLM generates a structured KB section
+app.post("/api/knowledge-base/generate-section", async (req, res) => {
+  try {
+    const { transcript, metadata, websiteContent } = req.body;
+    if (!metadata) {
+      return res.status(400).json({ error: "metadata is required" });
+    }
+    if (!transcript && !websiteContent) {
+      return res.status(400).json({ error: "at least one of transcript or websiteContent is required" });
+    }
+    const existingKB = fs.existsSync(KNOWLEDGE_BASE_PATH)
+      ? fs.readFileSync(KNOWLEDGE_BASE_PATH, "utf-8") : "";
+    const section = await generateCourseSection(transcript, metadata, existingKB, websiteContent || "");
+    res.json({ section });
+  } catch (err: any) {
+    console.error("[Course] Generate error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/knowledge-base/append — append a section to knowledge-base.txt
+app.post("/api/knowledge-base/append", async (req, res) => {
+  try {
+    const { section, syncToVapi } = req.body;
+    if (!section) return res.status(400).json({ error: "section is required" });
+
+    const existingKB = fs.existsSync(KNOWLEDGE_BASE_PATH)
+      ? fs.readFileSync(KNOWLEDGE_BASE_PATH, "utf-8") : "";
+    const separator = existingKB.trim() ? "\n\n---\n\n" : "";
+    const updatedKB = existingKB.trim() + separator + section.trim() + "\n";
+    fs.writeFileSync(KNOWLEDGE_BASE_PATH, updatedKB);
+    console.log(`[Course] Appended ${section.length} chars to KB (total: ${updatedKB.length})`);
+
+    let synced = false;
+    if (syncToVapi) {
+      const vapiKey = process.env.VAPI_SERVER_API_KEY;
+      const assistantId = process.env.VAPI_ASSISTANT_ID;
+      if (vapiKey && assistantId) {
+        const vapiRes = await fetch(`https://api.vapi.ai/assistant/${assistantId}`, {
+          method: "PATCH",
+          headers: { Authorization: `Bearer ${vapiKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: {
+              model: "gpt-4o-mini",
+              provider: "openai",
+              messages: [{ role: "system", content: updatedKB }],
+            },
+          }),
+        });
+        if (vapiRes.ok) {
+          synced = true;
+          console.log(`[Course] Synced to VAPI — ${updatedKB.length} chars`);
+        } else {
+          console.warn(`[Course] VAPI sync failed: ${vapiRes.status}`);
+        }
+      }
+    }
+
+    res.json({ success: true, totalKBChars: updatedKB.length, synced });
+  } catch (err: any) {
+    console.error("[Course] Append error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Admin: Add Course page ---
+app.get("/admin/add-course", (_req, res) => {
+  res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add Course — Vizuara Voice Agent</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0a0a0f; color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    .nav { background: #111118; border-bottom: 1px solid #2a2a35; padding: 12px 24px; display: flex; align-items: center; gap: 24px; }
+    .nav-brand { font-weight: 700; font-size: 16px; color: #c084fc; }
+    .nav a { color: #888; text-decoration: none; font-size: 14px; transition: color .2s; }
+    .nav a:hover, .nav a.active { color: #e0e0e0; }
+    .container { max-width: 900px; margin: 0 auto; padding: 24px; }
+    h1 { font-size: 24px; margin-bottom: 8px; }
+    .subtitle { color: #888; font-size: 14px; margin-bottom: 24px; }
+    .step { display: none; }
+    .step.active { display: block; }
+    .step-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+    .step-number { width: 32px; height: 32px; border-radius: 50%; background: #2a2a35; color: #888; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; }
+    .step-number.done { background: #065f46; color: #6ee7b7; }
+    .step-number.current { background: #c084fc; color: #fff; }
+    .step-title { font-size: 18px; font-weight: 600; }
+    .stepper { display: flex; gap: 8px; margin-bottom: 32px; }
+    .stepper-dot { flex: 1; height: 4px; border-radius: 2px; background: #2a2a35; transition: background .3s; }
+    .stepper-dot.done { background: #065f46; }
+    .stepper-dot.current { background: #c084fc; }
+    .card { background: #111118; border: 1px solid #2a2a35; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+    label { display: block; font-size: 13px; color: #888; margin-bottom: 4px; font-weight: 500; }
+    input[type="text"], input[type="number"], select, textarea {
+      width: 100%; background: #0a0a0f; border: 1px solid #2a2a35; border-radius: 8px;
+      color: #e0e0e0; font-family: inherit; font-size: 14px; padding: 10px 12px; margin-bottom: 12px;
+    }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #c084fc; }
+    textarea { min-height: 120px; resize: vertical; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 13px; line-height: 1.5; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
+    button { padding: 10px 20px; border-radius: 8px; border: none; font-size: 14px; font-weight: 500; cursor: pointer; transition: all .2s; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary { background: #c084fc; color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: #a855f7; }
+    .btn-secondary { background: #1e1e2a; color: #e0e0e0; border: 1px solid #2a2a35; }
+    .btn-secondary:hover:not(:disabled) { background: #2a2a35; }
+    .btn-success { background: #065f46; color: #6ee7b7; }
+    .btn-success:hover:not(:disabled) { background: #047857; }
+    .actions { display: flex; gap: 12px; margin-top: 8px; }
+    .status { padding: 8px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; display: none; }
+    .status.success { display: block; background: #064e3b; color: #6ee7b7; border: 1px solid #065f46; }
+    .status.error { display: block; background: #450a0a; color: #fca5a5; border: 1px solid #7f1d1d; }
+    .status.info { display: block; background: #1e1b4b; color: #a5b4fc; border: 1px solid #312e81; }
+    .transcript-preview { max-height: 200px; overflow-y: auto; background: #0a0a0f; border: 1px solid #2a2a35; border-radius: 8px; padding: 12px; font-size: 13px; color: #aaa; line-height: 1.5; white-space: pre-wrap; }
+    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #555; border-top-color: #c084fc; border-radius: 50%; animation: spin .6s linear infinite; margin-right: 6px; vertical-align: middle; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .info-row { display: flex; gap: 16px; margin-bottom: 12px; flex-wrap: wrap; }
+    .info-badge { background: #1e1e2a; border: 1px solid #2a2a35; border-radius: 6px; padding: 6px 12px; font-size: 13px; }
+    .info-badge strong { color: #c084fc; }
+    .generated-preview { min-height: 300px; }
+    .char-count { font-size: 12px; color: #666; text-align: right; margin-top: -8px; margin-bottom: 8px; }
+    .inline-input { display: flex; gap: 8px; align-items: flex-start; }
+    .inline-input input { flex: 1; margin-bottom: 0; }
+    .inline-input button { margin-top: 0; white-space: nowrap; }
+    .website-preview { max-height: 120px; overflow-y: auto; background: #0a0a0f; border: 1px solid #2a2a35; border-radius: 8px; padding: 10px; font-size: 12px; color: #888; line-height: 1.4; margin-bottom: 12px; }
+    .website-badge { display: inline-block; background: #1e1b4b; color: #a5b4fc; border: 1px solid #312e81; border-radius: 6px; padding: 3px 10px; font-size: 12px; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <span class="nav-brand">Vizuara Voice Agent</span>
+    <a href="/admin/costs">Costs</a>
+    <a href="/admin/feedback">Feedback</a>
+    <a href="/admin/add-course" class="active">Add Course</a>
+  </nav>
+
+  <div class="container">
+    <h1>Add New Course to Knowledge Base</h1>
+    <p class="subtitle">Extract transcript from YouTube, generate a structured KB section, review, and sync to VAPI</p>
+
+    <div class="stepper">
+      <div class="stepper-dot current" id="dot-0"></div>
+      <div class="stepper-dot" id="dot-1"></div>
+      <div class="stepper-dot" id="dot-2"></div>
+      <div class="stepper-dot" id="dot-3"></div>
+    </div>
+
+    <div id="status" class="status"></div>
+
+    <!-- Step 1: YouTube URL -->
+    <div class="step active" id="step-0">
+      <div class="step-header">
+        <div class="step-number current">1</div>
+        <div class="step-title">YouTube Video</div>
+      </div>
+      <div class="card">
+        <label for="youtube-url">YouTube URL</label>
+        <input type="text" id="youtube-url" placeholder="https://www.youtube.com/watch?v=..." />
+        <div class="actions">
+          <button class="btn-primary" id="btn-extract" onclick="extractTranscript()">Extract Transcript</button>
+          <button class="btn-secondary" onclick="goToStep(1)">Skip &mdash; no video &rarr;</button>
+        </div>
+      </div>
+      <div class="card" id="transcript-result" style="display:none">
+        <div class="info-row">
+          <div class="info-badge"><strong>Video ID:</strong> <span id="video-title"></span></div>
+          <div class="info-badge"><strong>Transcript:</strong> <span id="video-chars"></span> chars</div>
+        </div>
+        <label>Transcript Preview</label>
+        <div class="transcript-preview" id="transcript-preview"></div>
+        <div class="actions" style="margin-top:12px">
+          <button class="btn-primary" onclick="goToStep(1)">Next: Course Details &rarr;</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Course Details -->
+    <div class="step" id="step-1">
+      <div class="step-header">
+        <div class="step-number">2</div>
+        <div class="step-title">Course Details</div>
+      </div>
+      <div class="card">
+        <label for="course-name">Course Name *</label>
+        <input type="text" id="course-name" placeholder="e.g. AI/ML Bootcamp Cohort 5" />
+
+        <label for="website-url">Course Website URL (optional)</label>
+        <div class="inline-input" style="margin-bottom:4px">
+          <input type="text" id="website-url" placeholder="https://vizuara.ai/course-page" style="margin-bottom:0" />
+          <button class="btn-secondary" id="btn-scrape" onclick="scrapeWebsite()">Scrape</button>
+        </div>
+        <div id="website-result" style="display:none">
+          <span class="website-badge" id="website-badge"></span>
+          <div class="website-preview" id="website-preview"></div>
+        </div>
+
+        <div class="form-row">
+          <div>
+            <label for="course-type">Type</label>
+            <select id="course-type">
+              <option value="Bootcamp">Bootcamp</option>
+              <option value="Workshop">Workshop</option>
+              <option value="Minor Program">Minor Program</option>
+              <option value="Certification">Certification</option>
+              <option value="Course">Course</option>
+            </select>
+          </div>
+          <div>
+            <label for="course-duration">Duration</label>
+            <input type="text" id="course-duration" placeholder="e.g. 8 weeks" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div>
+            <label for="course-start">Start Date</label>
+            <input type="text" id="course-start" placeholder="e.g. July 15, 2026" />
+          </div>
+          <div></div>
+        </div>
+
+        <div class="form-row">
+          <div>
+            <label for="price-original">Original Price (INR)</label>
+            <input type="number" id="price-original" placeholder="25000" />
+          </div>
+          <div>
+            <label for="price-discounted">Discounted Price (INR)</label>
+            <input type="number" id="price-discounted" placeholder="20000" />
+          </div>
+        </div>
+
+        <label for="target-audience">Target Audience</label>
+        <input type="text" id="target-audience" placeholder="e.g. Working professionals, CS students" />
+
+        <label for="prerequisites">Prerequisites</label>
+        <input type="text" id="prerequisites" placeholder="e.g. Basic Python, Linear Algebra" />
+
+        <label for="extra-notes">Additional Notes / FAQs</label>
+        <textarea id="extra-notes" placeholder="Anything not in the video — special offers, instructor info, enrollment deadlines..."></textarea>
+
+        <div class="actions">
+          <button class="btn-secondary" onclick="goToStep(0)">&larr; Back</button>
+          <button class="btn-primary" onclick="goToStep(2)">Next: Generate Section &rarr;</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Review Generated Section -->
+    <div class="step" id="step-2">
+      <div class="step-header">
+        <div class="step-number">3</div>
+        <div class="step-title">Review Generated Section</div>
+      </div>
+      <div class="card">
+        <div class="actions" style="margin-bottom:12px">
+          <button class="btn-primary" id="btn-generate" onclick="generateSection()">Generate KB Section</button>
+          <button class="btn-secondary" onclick="goToStep(1)">&larr; Back</button>
+        </div>
+        <label for="generated-section">Generated Section (editable)</label>
+        <textarea id="generated-section" class="generated-preview" placeholder="Click 'Generate' to create a structured KB section from the transcript and course details..."></textarea>
+        <div class="char-count" id="section-chars"></div>
+        <div class="actions">
+          <button class="btn-primary" onclick="goToStep(3)" id="btn-to-save" disabled>Next: Save &amp; Sync &rarr;</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4: Save & Sync -->
+    <div class="step" id="step-3">
+      <div class="step-header">
+        <div class="step-number">4</div>
+        <div class="step-title">Save &amp; Sync</div>
+      </div>
+      <div class="card">
+        <p style="margin-bottom:16px;color:#aaa">Your generated section is ready. Choose how to save it:</p>
+        <div class="actions">
+          <button class="btn-primary" onclick="appendToKB(false)">Append to Knowledge Base</button>
+          <button class="btn-success" onclick="appendToKB(true)">Append &amp; Sync to VAPI</button>
+          <button class="btn-secondary" onclick="goToStep(2)">&larr; Back to Edit</button>
+        </div>
+      </div>
+      <div class="card" id="save-result" style="display:none">
+        <h3 style="color:#6ee7b7;margin-bottom:8px">Done!</h3>
+        <div id="save-details"></div>
+        <div class="actions" style="margin-top:12px">
+          <button class="btn-primary" onclick="resetWizard()">Add Another Course</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentStep = 0;
+    let transcriptData = null;
+    let websiteData = null;
+
+    function showStatus(msg, type) {
+      const el = document.getElementById('status');
+      el.className = 'status ' + type;
+      el.textContent = msg;
+      if (type === 'success') setTimeout(() => { el.className = 'status'; }, 5000);
+    }
+
+    function goToStep(n) {
+      document.querySelectorAll('.step').forEach((s, i) => {
+        s.classList.toggle('active', i === n);
+      });
+      document.querySelectorAll('.stepper-dot').forEach((d, i) => {
+        d.className = 'stepper-dot' + (i < n ? ' done' : i === n ? ' current' : '');
+      });
+      currentStep = n;
+    }
+
+    async function extractTranscript() {
+      const url = document.getElementById('youtube-url').value.trim();
+      if (!url) return showStatus('Please enter a YouTube URL', 'error');
+
+      const btn = document.getElementById('btn-extract');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>Extracting...';
+      document.getElementById('status').className = 'status';
+
+      try {
+        const res = await fetch('/api/youtube/transcript', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        transcriptData = data;
+        document.getElementById('video-title').textContent = data.title;
+        document.getElementById('video-chars').textContent = data.transcript.length.toLocaleString();
+        document.getElementById('transcript-preview').textContent = data.transcript.substring(0, 1000) + (data.transcript.length > 1000 ? '...' : '');
+        document.getElementById('transcript-result').style.display = 'block';
+        showStatus('Transcript extracted successfully', 'success');
+      } catch (err) {
+        showStatus('Failed to extract transcript: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Extract Transcript';
+      }
+    }
+
+    async function scrapeWebsite() {
+      const url = document.getElementById('website-url').value.trim();
+      if (!url) return showStatus('Please enter a website URL', 'error');
+
+      const btn = document.getElementById('btn-scrape');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>Scraping...';
+
+      try {
+        const res = await fetch('/api/website/scrape', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        websiteData = data;
+        document.getElementById('website-badge').textContent = data.charCount.toLocaleString() + ' chars scraped';
+        document.getElementById('website-preview').textContent = data.content.substring(0, 500) + (data.content.length > 500 ? '...' : '');
+        document.getElementById('website-result').style.display = 'block';
+        showStatus('Website scraped successfully', 'success');
+      } catch (err) {
+        showStatus('Scrape failed: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Scrape';
+      }
+    }
+
+    async function generateSection() {
+      const name = document.getElementById('course-name').value.trim();
+      if (!name) return showStatus('Please enter a course name in Step 2', 'error');
+      if (!transcriptData && !websiteData) return showStatus('Please extract a transcript or scrape a website first', 'error');
+
+      const btn = document.getElementById('btn-generate');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>Generating (may take 10-20s)...';
+
+      const metadata = {
+        name,
+        type: document.getElementById('course-type').value,
+        startDate: document.getElementById('course-start').value,
+        duration: document.getElementById('course-duration').value,
+        priceOriginal: parseInt(document.getElementById('price-original').value) || 0,
+        priceDiscounted: parseInt(document.getElementById('price-discounted').value) || 0,
+        targetAudience: document.getElementById('target-audience').value,
+        prerequisites: document.getElementById('prerequisites').value,
+        notes: document.getElementById('extra-notes').value,
+      };
+
+      try {
+        const res = await fetch('/api/knowledge-base/generate-section', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ transcript: transcriptData?.transcript || '', metadata, websiteContent: websiteData?.content || '' })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        document.getElementById('generated-section').value = data.section;
+        document.getElementById('section-chars').textContent = data.section.length + ' chars';
+        document.getElementById('btn-to-save').disabled = false;
+        showStatus('Section generated! Review and edit if needed.', 'success');
+      } catch (err) {
+        showStatus('Generation failed: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Generate KB Section';
+      }
+    }
+
+    // Update char count on edit
+    document.getElementById('generated-section').addEventListener('input', function() {
+      document.getElementById('section-chars').textContent = this.value.length + ' chars';
+      document.getElementById('btn-to-save').disabled = !this.value.trim();
+    });
+
+    async function appendToKB(syncToVapi) {
+      const section = document.getElementById('generated-section').value.trim();
+      if (!section) return showStatus('No section to append', 'error');
+
+      try {
+        const res = await fetch('/api/knowledge-base/append', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ section, syncToVapi })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        const details = document.getElementById('save-details');
+        details.innerHTML = '<p>Section appended to knowledge base.</p>' +
+          '<p style="margin-top:8px"><strong>Total KB size:</strong> ' + data.totalKBChars.toLocaleString() + ' chars</p>' +
+          (data.synced ? '<p style="color:#6ee7b7;margin-top:4px">Synced to VAPI assistant.</p>' : '<p style="color:#888;margin-top:4px">Not synced to VAPI (set VAPI_SERVER_API_KEY and VAPI_ASSISTANT_ID to enable).</p>');
+        document.getElementById('save-result').style.display = 'block';
+        showStatus('Course added successfully!', 'success');
+      } catch (err) {
+        showStatus('Save failed: ' + err.message, 'error');
+      }
+    }
+
+    function resetWizard() {
+      document.getElementById('youtube-url').value = '';
+      document.getElementById('transcript-result').style.display = 'none';
+      document.getElementById('course-name').value = '';
+      document.getElementById('website-url').value = '';
+      document.getElementById('website-result').style.display = 'none';
+      document.getElementById('course-duration').value = '';
+      document.getElementById('course-start').value = '';
+      document.getElementById('price-original').value = '';
+      document.getElementById('price-discounted').value = '';
+      document.getElementById('target-audience').value = '';
+      document.getElementById('prerequisites').value = '';
+      document.getElementById('extra-notes').value = '';
+      document.getElementById('generated-section').value = '';
+      document.getElementById('section-chars').textContent = '';
+      document.getElementById('btn-to-save').disabled = true;
+      document.getElementById('save-result').style.display = 'none';
+      transcriptData = null;
+      websiteData = null;
+      goToStep(0);
+      document.getElementById('status').className = 'status';
+    }
+  </script>
+</body>
+</html>`);
 });
 
 // --- SPA fallback ---

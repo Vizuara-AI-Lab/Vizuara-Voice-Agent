@@ -1,17 +1,10 @@
 # Vizuara AI Labs — Complete Knowledge Base
-
 > **Purpose:** This document is the primary knowledge source for a voice agent that answers customer queries about Vizuara AI Labs. Each section is self-contained and optimized for retrieval-augmented generation (RAG) or keyword-based search.
-
 ---
-
 ## 1. Company Overview
-
 **Vizuara AI Labs** is an AI education and research company founded in **2023** and headquartered in **Pune, India**. Vizuara AI Labs has trained over **50,000+ students globally** through its live and self-paced AI/ML courses, research bootcamps, and specialized programs.
-
 Vizuara AI Labs was founded by three alumni of **IIT Madras**, who hold PhDs from **MIT** and **Purdue University**. The company offers programs for college students, industry professionals, school students (K-12), and teachers.
-
 **Mission:** To democratize world-class AI education by teaching from first principles — combining fundamentals, practicals, and a research mindset (the **FPR approach**).
-
 **Key Facts:**
 - **Founded:** 2023
 - **Headquarters:** Bengaluru, India
@@ -19,20 +12,15 @@ Vizuara AI Labs was founded by three alumni of **IIT Madras**, who hold PhDs fro
 - **Academic Backing:** MIT, Purdue University, IIT Madras
 - **Website:** [vizuara.ai](https://vizuara.ai)
 - **Industry Arm:** First Principle Labs ([firstprinciplelabs.ai](https://firstprinciplelabs.ai))
-
 ---
-
 ## 2. Founders & Instructors
-
 Vizuara AI Labs was co-founded by three PhD-holding researchers from top global institutions. All three are IIT Madras alumni.
-
 ### Dr. Raj Abhijit Dandekar
 - **Education:** PhD from **MIT** (Massachusetts Institute of Technology); B.Tech from **IIT Madras**
 - **Role:** Co-founder, Vizuara AI Labs
 - **Expertise:** Building LLMs from scratch, Scientific Machine Learning, computational methods
 - **Notable:** Co-author of "Build a DeepSeek Model (From Scratch)" (Manning / Simon & Schuster)
 - **Teaching:** Leads mega build sessions, LLM-from-scratch courses, and self-paced content
-
 ### Dr. Rajat Dandekar
 - **Education:** PhD in Mechanical Engineering from **Purdue University**; B.Tech and M.Tech from **IIT Madras**
 - **Role:** Co-founder, Vizuara AI Labs
@@ -40,7 +28,6 @@ Vizuara AI Labs was co-founded by three PhD-holding researchers from top global 
 - **Notable:** Co-author of "Build a DeepSeek Model (From Scratch)" (Manning / Simon & Schuster)
 - **Teaching:** Leads reinforcement learning, reasoning LLMs, and advanced AI engineering sessions
 - **Contact (Industry/Corporate):** rajatdandekar@vizuara.com
-
 ### Dr. Sreedath Panat
 - **Education:** PhD from **MIT**; B.Tech from **IIT Madras**
 - **Role:** Co-founder, Vizuara AI Labs
@@ -48,17 +35,11 @@ Vizuara AI Labs was co-founded by three PhD-holding researchers from top global 
 - **Notable:** 10+ years of research experience; co-author of "Build a DeepSeek Model (From Scratch)"
 - **Teaching:** Lead instructor for context engineering workshops, computer vision bootcamps, and the 10-course bundle
 - **LinkedIn:** Sreedath Panat (FirstPrincipleLabs.ai)
-
 ---
-
 ## 3. Products & Platforms
-
 ### 3.1 Vizz AI — Personalized AI Tutor
-
 **Vizz AI** is Vizuara's conversational AI tutor designed to accompany every Vizuara course. It provides personalized, multi-lingual, voice-based tutoring.
-
 **Website:** [vizz.vizuara.ai](https://vizz.vizuara.ai)
-
 **Key Features:**
 - **Multi-Lingual Support:** Speak freely in any language — the AI tutor understands them all
 - **Real-Time Conversations:** Ultra-low latency for seamless interaction
@@ -68,46 +49,31 @@ Vizuara AI Labs was co-founded by three PhD-holding researchers from top global 
 - **Topic-Based Guidance:** Get exact timestamps for specific topics in videos
 - **Real-Time Voice Transcripts:** Synchronized text with voice output
 - **Smart Study Toolkit:** Chat questions, flashcard generation, and lesson navigation
-
 **Tutor Characters:**
 - **Clara** — Personalized teaching style
 - **Ethan** — Personalized teaching style
 - **Vidya** — Personalized teaching style
-
 **Pricing:** Free to use with Vizuara courses (check [vizz.vizuara.ai/pricing](https://vizz.vizuara.ai/pricing) for details)
-
 **Trusted By Students From:** MIT, Stanford, Caltech, Princeton, UC Berkeley, and professionals from Apple, Google, Microsoft, Netflix, Meta
-
 **Philosophy:** "Personalized education powered by AI is the bridge between what students know and what they're capable of achieving."
-
 ### 3.2 Vizuara AI Pods — Short-Format AI Mastery Platform
-
 **Video:** [YouTube — Vizuara AI Pods Announcement](https://www.youtube.com/watch?v=7qCvLUmS0a4)
-
 **Vizuara AI Pods** is a short-format learning platform designed for busy professionals and students who want to go from zero to mastery in any AI concept in **1–2 weeks** (instead of months of long-format content).
-
 **The Problem It Solves:** "Every month you are seeing something new coming up like context engineering, agentic AI, etc. and you do not have the time to read research papers, you do not have the time to do projects on your own." Many learners find 90–100 minute lectures too long and suffer from **FOMO (Fear of Missing Out)** as the AI field evolves rapidly.
-
 **Three Levels of Mastery (FPR Technique):**
 1. **Fundamentals** — Learn the basics of the subject from a foundational level (e.g., what is context engineering, how does it work, what are its components)
 2. **Practicals** — Implement hands-on Google Colab notebooks specifically designed for the topic — whatever you learned in theory, you implement in practice
 3. **Research** — Solve a practical case study based on a **real-life dataset** (not a toy dataset), giving complete confidence to implement end-to-end projects from scratch. The case study is a novel problem statement that can be added to your resume.
-
 **Key Features:**
 - Content updated **every 2 weeks** — you never feel you're losing out
 - Addresses AI FOMO with a single platform for all emerging concepts
 - Placement-ready — case study research can be added to resumes
 - Topics include: Context engineering, agentic AI, video generation models, and more
 - Takes 1–2 weeks maximum per concept from foundation to mastery
-
 **Target Audience:** Students who lack patience for long-form content, busy industry professionals wanting to stay current, anyone who wants quick mastery of specific AI concepts.
-
 ### 3.3 Interactive AI Learning Platform (K-12)
-
 Vizuara AI Labs offers an **Interactive AI Learning Platform** designed for school students in **grades 1 through 12**. The platform provides an engaging, interactive AI/ML curriculum developed by PhD experts from MIT, Purdue, and IIT Madras.
-
 **Website:** [interactive-ai-courses.vizuara.ai](https://interactive-ai-courses.vizuara.ai)
-
 **Key Features:**
 - Highly engaging, interactive AI curriculum for K-12
 - Course pedagogy developed by IITians and AI PhD founders
@@ -115,18 +81,12 @@ Vizuara AI Labs offers an **Interactive AI Learning Platform** designed for scho
 - Projects for school students in grades 5–12
 - Supports all major Indian and international syllabi
 - Physical AI kits for hands-on learning
-
 ---
-
 ## 4. Minor Programs (Academic Credentials)
-
 Vizuara AI Labs offers accredited **Minor programs** in partnership with engineering colleges. These are designed for college students who want to add an AI/GenAI/Robotics credential to their degree.
-
 ### 4.1 Minor in Artificial Intelligence
-
 **Website:** [minor.vizuara.ai](https://minor.vizuara.ai)
 **Video:** [YouTube — Minor in AI & GenAI Announcement](https://www.youtube.com/watch?v=-kIIgeAqLSY)
-
 - **Duration:** 1 year
 - **Number of Courses:** 4 core courses
 - **Price:** ₹60,000
@@ -134,15 +94,12 @@ Vizuara AI Labs offers accredited **Minor programs** in partnership with enginee
 - **Cohort Start:** January 31, 2026
 - **Past Cohorts:** 400+ students and industry professionals graduated from earlier cohorts
 - **Rating:** 4.9 stars (from 2025 reviews)
-
 **Curriculum (4 Courses):**
 1. **Mathematical Foundations** — Linear algebra, probability, statistics, calculus, optimization, Python implementation
 2. **Machine Learning & Deep Learning Mastery** — Supervised/unsupervised learning, regression, classification, clustering, neural networks, CNNs, training techniques, optimization
 3. **Computer Vision** — Image processing, object detection, segmentation
 4. **Natural Language Processing (NLP)** — Text processing, transformers, language models
-
 **Capstone Project:** Work on an idea that serves as a proof of concept or proof of product — something that could potentially become your own company.
-
 **What's Included:**
 - Self-paced lectures combined with live office hours
 - Exams, assignments, pop quizzes, mid-semester and end-semester exams for timely evaluation
@@ -152,103 +109,71 @@ Vizuara AI Labs offers accredited **Minor programs** in partnership with enginee
 - Joint certification with partner colleges
 - Global cohort — students from US, India, UK, and elsewhere
 - Networking opportunities with peers
-
 **Key Philosophy (from the announcement):** "The way in which AI is taught in engineering colleges as well as universities is not correct. There is no emphasis on foundations. People know how to use APIs, people know how to run models for inference, but they don't know how models work underneath. Then how will you build something for your own application or for your own company?"
-
 **Success Stories:** Students have successfully transitioned to AI/GenAI engineer roles at top companies including **Anthropic**.
-
 **Partner Colleges:** SPIT (Sardar Patel Institute of Technology), COEP (College of Engineering, Pune), and other engineering institutions
-
 **Designed By:** MIT & Purdue PhDs and IIT Madras experts
-
 **Target Audience:** Complete beginners to experienced professionals. Engineering students who want to add an AI specialization to their degree, or industry professionals looking to transition into AI roles.
-
 ### 4.2 Minor in Generative AI
-
 **Website:** [genai-minor.vizuara.ai](https://genai-minor.vizuara.ai)
 **Video:** [YouTube — Minor in AI & GenAI Announcement](https://www.youtube.com/watch?v=-kIIgeAqLSY)
-
 - **Duration:** 1 year
 - **Number of Courses:** 4 courses
 - **Format:** LIVE online classes with live office hours
 - **Cohort Start:** January 31, 2026
 - **Past Cohorts:** 400+ students and industry professionals graduated from earlier cohorts
 - **Rating:** 4.9 stars (from 2025 reviews)
-
 **Curriculum (4 Courses) — Covers:**
 1. **Generative AI Foundations** — Understanding what happens under the hood when you prompt ChatGPT, transformer architecture building blocks, attention mechanisms
 2. **Build Your Own Large Language Model from Scratch** — Architecture, training, tokenization, pre-training pipelines
 3. **LLMs in Production & Deployment** — RAG, AI agents, tool use, production-grade deployment
 4. **Capstone Project** — Proof of concept/product with potential for startup development
-
 **Key Question Addressed:** "When you are asking a prompt to ChatGPT, do you know what exactly is going on underneath? Even behind the simplest of neural networks, there are a lot of calculations and mathematical operations going on which has its foundations in linear algebra, probability, statistics, calculus, optimization."
-
 **Designed By:** MIT & Purdue PhDs
-
 ### 4.3 Minor in Modern Robotics
-
 **Website:** [minor-robotics.vizuara.ai](https://minor-robotics.vizuara.ai)
 **Video:** [YouTube — Minor in Robotics Announcement](https://www.youtube.com/watch?v=1_t6cLVjnw8)
-
 - **Duration:** 6 months
 - **Format:** LIVE online classes with hands-on robot training
 - **Instructor:** Dr. Rajat Dandekar (Purdue PhD, IIT Madras)
-
 **Why Robotics Now (from the announcement):** "2026 is going to be the year of robotics. AI has already advanced a lot. The hardware part of robotics has also advanced a lot. Now it is time to merge AI with the hardware so that we can get truly intelligent robots." Google DeepMind's partnership with Boston Dynamics exemplifies this trend — AI models embedded inside advanced robots. The industry will see robots in households doing intelligent tasks within this decade.
-
 **The Problem This Course Solves:** "People who are good in hardware struggle with the AI part. People who are good in AI are afraid of the hardware. Now is the time when both these people can actually work together and master both these skills."
-
 **Curriculum (4 Courses):**
 1. **Reinforcement Learning** — Basics of RL, training robots through trial and error, building RL policies
 2. **Modern Robot Learning** — Vision-Language-Action models (foundational robotics models like Gr00t Pi 0.5, SmallVLA, OpenVLA), imitation learning (ACT policy, diffusion policy), implementing policies in real hardware
 3. **Principles of Diffusion Models** — Diffusion models from scratch, increasingly critical in modern robot learning
 4. **Vision Language Models (VLMs)** — The heart of foundational robotics models; VLMs + action layer = VLAs (Vision-Language-Action models)
-
 **Key Philosophy:** Understanding every building block of modern robot learning from "nuts and bolts" — so students are confident to embed their own AI policies in any hardware, making them an asset in the field of robotics for any company.
-
 **Key Highlight:** Students train real robots using state-of-the-art AI techniques including imitation learning and vision-language-action models.
-
 ### 4.4 Combined Minor Program (AI + Generative AI)
-
 **Website:** [minors.vizuara.ai](https://minors.vizuara.ai)
-
 - **Total Courses:** 8 courses (4 AI + 4 GenAI)
 - **Duration:** 1 year
 - **Cohort Start:** January 2026
 - Combines the Minor in AI and Minor in Generative AI into a single comprehensive program
-
 ---
-
 ## 5. Self-Paced Course Bundle
-
 ### 10-Course AI & ML Bundle
-
 **Website:** [complete-pathway.vizuara.ai](https://complete-pathway.vizuara.ai)
-
 Vizuara AI Labs' flagship self-paced program — a comprehensive 10-course bundle designed to transition learners into ML/DL/GenAI engineering roles within 4–6 months.
-
 - **Price:** ₹90,000 (Original: ₹2,17,999 — **59% discount**, saves ₹1,27,999 vs. individual purchases)
 - **Content:** 200+ hours of video content
 - **Courses:** 10 courses across 3 mastery levels
 - **Completion Time:** 4–6 months (self-paced)
 - **Access:** Lifetime access to all materials
-
 **Level 1: Foundations (4 Courses)**
 1. **Math Foundations for AI/ML** — Calculus, Linear Algebra, Probability, Statistics
 2. **Build Neural Network from Scratch** — Neuron architecture, forward/backward propagation
 3. **Generative AI Fundamentals** — Transformer architecture, attention mechanisms
 4. **Build an LLM from Scratch** — Tokenization, model architecture, pre-training
-
 **Level 2: Applications (3 Courses)**
 5. **Retrieval Augmented Generation (RAG)** — Vector databases, retrieval pipelines
 6. **Fine-Tuning LLMs** — LoRA, QLoRA, data preparation
 7. **AI Agents** — Tool use, planning, multi-agent systems
-
 **Level 3: Domain-Specific (3 Courses)**
 8. **Computer Vision** — CNNs, Vision Transformers
 9. **Reinforcement Learning** — Policy optimization, reasoning models
 10. **Small Language Models** — Domain-specific training, efficiency
-
 **What's Included:**
 - Video recordings from live bootcamps and workshops
 - Handwritten notes on Miro (visual explanations)
@@ -258,27 +183,17 @@ Vizuara AI Labs' flagship self-paced program — a comprehensive 10-course bundl
 - Industry-grade projects
 - Vizuara certificate of completion
 - Global community forum access
-
 **Instructors:** Dr. Sreedath Panat (MIT PhD), Dr. Raj Dandekar (MIT PhD), Dr. Rajat Dandekar (Purdue PhD)
-
 **Target Audience:** Software engineers, CS/engineering students, data scientists, and industry professionals transitioning to AI/ML roles at top tech companies (Google, Microsoft, NVIDIA, OpenAI, Anthropic).
-
 ---
-
 ## 6. Live Bootcamps & Workshops
-
 Vizuara AI Labs offers multiple live bootcamps and workshops, each focusing on a specific AI/ML domain. All are taught by the MIT and Purdue PhD founders.
-
 ### 6.1 AI Context Engineering Workshop
-
 **Website:** [context-engineering.vizuara.ai](https://context-engineering.vizuara.ai)
-
 Master the art of Context Engineering for LLMs in this intensive 2-week workshop.
-
 - **Duration:** 10 sessions over 2 weeks (March 9–20, 2026)
 - **Schedule:** Monday–Thursday, 9:30–10:30 AM IST
 - **Format:** Live & Virtual
-
 **Curriculum:**
 - **Week 1 (Sessions 1–4):**
   - Session 1: Context Foundations
@@ -293,33 +208,23 @@ Master the art of Context Engineering for LLMs in this intensive 2-week workshop
 - **Mega Build Week (Sessions 9–10):**
   - Session 9: 3-hour guided hands-on build (Dr. Raj Dandekar)
   - Session 10: 3-hour advanced implementation (Dr. Rajat Dandekar)
-
 **What You Build:**
 - Production AI Agent with multi-model support (Claude, GPT, Gemini), RAG pipeline with ChromaDB, MCP tool server integration, memory & context management, token budget optimization, error handling & observability
 - Strategy Playbook with context architecture decision tree, RAG vs. fine-tuning guidelines, token optimization checklist, tool selection framework, memory pattern catalog, production deployment checklist
-
 **Key Topics:** Three-layer context model, RAG pipelines, function calling & MCP servers, memory architectures (Write/Select/Compress/Isolate), token budget allocation, guardrails, observability, multi-model API integration
-
 **Token Budget Framework Taught:** 128K context window allocation — 15% system prompt, 35% few-shot examples, 15% RAG context, 15% tool definitions, remainder for conversation history and response
-
 **Pricing:**
-
 | Tier | Price | What's Included |
 |------|-------|-----------------|
 | **Free** | ₹0 | Lecture videos only |
 | **Engineer** | ₹30,000 | Videos, community forum, complete code files, hand-written notes, PDF booklets, session recordings, course certificate |
 | **Industry Professional** | ₹95,000 | Everything in Engineer + 2 months personalized research guidance, custom research problem statement, research roadmap, guidance toward publishable manuscript, AI conference targeting |
 | **Enterprise** | Custom pricing | Everything in Industry Professional + bulk team enrollment, invoice-based payment |
-
 **Instructors:** Dr. Sreedath Panat (Lead, Sessions 1–8), Dr. Raj Dandekar (Session 9), Dr. Rajat Dandekar (Session 10)
-
 **Target Audience:** Software Developers, Data Scientists, ML Engineers, Tech Managers
-
 ### 6.2 Computer Vision Research Bootcamp
-
 **Website:** [cvresearchbootcamp.vizuara.ai](https://cvresearchbootcamp.vizuara.ai)
 **Video:** [YouTube — CV Research Bootcamp Announcement](https://www.youtube.com/watch?v=AiWlOPU7Aew)
-
 - **Duration:** 4 months
 - **Price:** ₹95,000 (one-time payment, no EMI or discount)
 - **Focus:** Research + Publication — build CV foundations, conduct impactful research, and publish papers at top-tier conferences
@@ -327,19 +232,16 @@ Master the art of Context Engineering for LLMs in this intensive 2-week workshop
 - **Intake:** Limited — once or twice per month (small batch of students at any given time)
 - **Time Commitment:** 8–12 hours per week
 - **Instructors:** Dr. Sreedath Panat (MIT PhD, lead), Dr. Raj Dandekar (MIT PhD), Dr. Rajat Dandekar (Purdue PhD)
-
 **Why CV Matters (from the announcement):**
 - The DeepSeek OCR paper demonstrated that vision as a modality can achieve 97% OCR precision with 10x compression — converting text to images and using vision tokens instead of text tokens
 - Vision as a modality carries information at much higher efficiency than text in certain scenarios
 - The field spans CNNs (2012–2020 dominance), Vision Transformers (2020+), Vision-Language Models, and now Vision-Language-Action models for robotics
-
 **Phase 1 — Foundation Building (6–7 weeks, self-paced):**
 - Customized based on research area of interest
 - If interested in Vision Transformers → specific ViT-focused material
 - If interested in CNNs → CNN-focused material
 - Students with prior CV experience may skip Phase 1 (discuss with mentors)
 - Embedded assignments on the website
-
 **Phase 2 — Research (remaining ~2.5 months):**
 1. Broader research area decided in the first week itself
 2. Initial "quick and dirty" proof-of-concept experiments to validate/invalidate hypotheses
@@ -349,7 +251,6 @@ Master the art of Context Engineering for LLMs in this intensive 2-week workshop
 6. Iterative paper writing — fixing logical gaps, loopholes, and assumption mistakes
 7. Target conferences/workshops/journals based on paper fit
 8. Multiple submission attempts if needed — "rejection is part of the scientific research process"
-
 **Research Topics (broad umbrella of vision):**
 - CNNs and convolutional architectures
 - Vision Transformers and variants (Swin Transformer, DeiT)
@@ -358,12 +259,10 @@ Master the art of Context Engineering for LLMs in this intensive 2-week workshop
 - Detection Transformers (DETR)
 - Video Transformers (TimeSformer)
 - Object detection, segmentation, feature extraction
-
 **Communication Platforms:**
 - **Email** — quick communication and doubt clearance
 - **Loom** — asynchronous video messages for longer discussions
 - **Overleaf** — paper writing stage collaboration
-
 **Past Research Successes:**
 - NeurIPS workshops
 - PMNLB workshops
@@ -371,17 +270,12 @@ Master the art of Context Engineering for LLMs in this intensive 2-week workshop
 - ACM CIKM workshop — **Best Paper Award**
 - MIT URC conference
 - Full publication list: [research.vizuara.ai](https://research.vizuara.ai) → Publications section
-
 **Designed for:** Students and professionals interested in cutting-edge computer vision research. Can join as a complete beginner — the only requirement is time commitment and willingness to learn.
-
 ### 6.3 Hands-on Computer Vision Bootcamp
-
 **Website:** [hands-on-cv.vizuara.ai](https://hands-on-cv.vizuara.ai)
-
 - **Duration:** 5 weeks
 - **Lead Instructor:** Dr. Sreedath Panat (MIT PhD)
 - **Tiers:** Basic and Pro
-
 **Curriculum Covers:**
 - Image segmentation
 - Real-time object detection
@@ -390,25 +284,18 @@ Master the art of Context Engineering for LLMs in this intensive 2-week workshop
 - UNet for segmentation
 - YOLO for object detection
 - Roboflow for data management
-
 **Tier Details:**
 - **Basic Tier:** Core lecture content and community access
 - **Pro Tier:** Everything in Basic + additional hands-on projects, code repositories, personal support
-
 **Enrollment Pages:**
 - Basic: [vizuara.ai/courses/hands-on-computer-vision-bootcamp-basic](https://vizuara.ai/courses/hands-on-computer-vision-bootcamp-basic/)
 - Pro: [vizuara.ai/courses/hands-on-computer-vision-bootcamp-pro](https://vizuara.ai/courses/hands-on-computer-vision-bootcamp-pro/)
-
 ### 6.4 VisionLLMs Bootcamp — Transformers for Vision & Multimodality
-
 **Website:** [vision-transformer.vizuara.ai](https://vision-transformer.vizuara.ai)
-
 - **Duration:** 14 weeks
 - **Focus:** Master Transformers for Vision, Multimodality, and Generation — covering the journey from Vision Transformers (ViT) to multimodal models like LLaVA
 - **Format:** Free YouTube lectures + paid Pro tier
-
 **Curriculum Journey:** ViT → Multimodal Vision Models → LLaVA and beyond
-
 **Detailed Topics:**
 - CNNs and convolutional architectures
 - Vision Transformers (ViT)
@@ -419,84 +306,62 @@ Master the art of Context Engineering for LLMs in this intensive 2-week workshop
 - BLIP (Bootstrapping Language-Image Pre-training)
 - Stable Diffusion
 - LLaVA (Large Language and Vision Assistant)
-
 **Tier Details:**
 - **Free:** YouTube lecture playlist available for everyone
 - **Pro:** Paid tier with additional materials, code, projects, and support
-
 ### 6.5 Modern Robot Learning from Scratch Bootcamp
-
 **Website:** [robotlearningbootcamp.vizuara.ai](https://robotlearningbootcamp.vizuara.ai)
-
 - **Duration:** 10 weeks
 - **Format:** Live bootcamp with hands-on robot training
-
 **Curriculum Covers:**
 - Imitation Learning
 - Variational Autoencoders (VAEs)
 - Transformers for robotics
 - ACT (Action Chunking with Transformers) Policy
 - Hands-on training with **SO-101 robots**
-
 **Key Highlight:** Students work with real SO-101 robots, implementing state-of-the-art robot learning techniques from scratch.
-
 ### 6.6 GPU Engineer's Bootcamp: 5D Parallelism from Scratch
-
 **Website:** [5d-parallelism.vizuara.ai](https://5d-parallelism.vizuara.ai)
-
 - **Duration:** 15 live sessions
 - **Focus:** Master GPU programming and 5D parallelism, code GPT-2 from scratch distributed across 8 GPUs
-
 **Curriculum Covers:**
 - GPU programming fundamentals
 - 5D Parallelism (Data, Tensor, Pipeline, Sequence, Expert parallelism)
 - Building GPT-2 from scratch
 - Distributing training across 8 GPUs
 - Industrial-grade LLM engineering
-
 **Outcome:** Transition from beginner to industrial-grade LLM engineer.
-
 ### 6.7 Hands-on Reinforcement Learning Bootcamp
-
 **Website:** [hands-on-rl.vizuara.ai](https://hands-on-rl.vizuara.ai)
-
 - **Duration:** 8 weeks
 - **Tiers:** Basic and Pro
 - **Focus:** Practical RL from Q-learning to RLHF and GRPO
-
 **Curriculum Journey:**
 - Q-learning fundamentals
 - Deep Q-Networks (DQNs)
 - Policy gradient methods
 - RLHF (Reinforcement Learning from Human Feedback)
 - GRPO (Group Relative Policy Optimization)
-
 **Tier Details:**
 - **Basic:** Core lectures and community access
 - **Pro:** Everything in Basic + additional projects, code, and support
-
 **Enrollment Pages:**
 - Basic: [vizuara.ai/courses/hands-on-reinforcement-learning-bootcamp-basic](https://vizuara.ai/courses/hands-on-reinforcement-learning-bootcamp-basic/)
 - Pro: [vizuara.ai/courses/hands-on-reinforcement-learning-bootcamp-pro](https://vizuara.ai/courses/hands-on-reinforcement-learning-bootcamp-pro/)
-
 ### 6.8 RL Research Bootcamp
-
 **Website:** [rlresearcherbootcamp.vizuara.ai](https://rlresearcherbootcamp.vizuara.ai)
 **Video:** [YouTube — RL Research Bootcamp Announcement](https://www.youtube.com/watch?v=C77QoOm2dTM)
-
 - **Duration:** ~4 months
 - **Price:** ₹95,000 (one-time payment)
 - **Focus:** Take learners from beginner-level RL understanding to confidently writing and publishing highly impactful research papers
 - **Format:** Two-phase structured program with research mentorship
 - **Instructors:** Dr. Rajat Dandekar (Purdue PhD), Dr. Raj Dandekar (MIT PhD), Dr. Sreedath Panat (MIT PhD)
-
 **Why RL Matters (from the announcement):**
 - The DeepSeek paper highlighted RL as a major contributor to reasoning model development — "an aha moment... witnessing the power and beauty of reinforcement learning"
 - Google RT2 uses RL for incredibly complicated robotic tasks
 - OpenAI o3's "thinking with images" — using external tools (zoom, crop) to analyze images — is powered by RL
 - Agentic RL powers deep research tools across multiple LLMs
 - RL application in LLMs is a recent field, meaning **low barrier to entry** — not a lot of prior work, so there is room for meaningful contributions
-
 **Phase 1 — Foundations of Reinforcement Learning:**
 - Complete basics of RL
 - Deep Q-Networks (DQNs)
@@ -505,71 +370,51 @@ Master the art of Context Engineering for LLMs in this intensive 2-week workshop
 - GRPO (Group Relative Policy Optimization)
 - Building reasoning models
 - Agentic reinforcement learning
-
 **Phase 2 — Research Work:**
 - Research problem statement ideation — Vizuara identifies problems with a good balance between **novelty and feasibility** (novel enough to be impactful, feasible enough to complete in ~3 months)
 - Personalized research roadmap
 - Research paper writing support
 - Conference submission guidance
 - Publication co-authorship guidance
-
 **Example Research Topics:**
 - Aligning small language models towards human preferences using RL
 - Thinking with images
 - Deep research agents
 - RL for robotics
 - Building reasoning models
-
 **Key Philosophy:** Balance foundational knowledge, impactful research, and tangible outcomes (published paper) within 4 months.
-
 **Designed for:** Students and professionals who want to conduct original RL research and publish at leading AI/ML conferences. RL is ideal because it is a recent field (low barrier to entry) and highly practical (not overly theoretical).
-
 ### 6.9 AI Agents 10-Day Bootcamp
-
 **Website:** [agentsbootcamp.vizuara.ai](https://agentsbootcamp.vizuara.ai)
-
 - **Duration:** 10 days
 - **Price:** ₹25,000 (Original: ₹35,000)
 - **Focus:** Master building, deploying, and monetizing AI agents
-
 **What's Included:**
 - Live lectures over 10 days
 - Industrial projects
 - Certification upon completion
 - Complete code files (GitHub: [VizuaraAI/Vizuara-Agents-10Day-Bootcamp](https://github.com/VizuaraAI/Vizuara-Agents-10Day-Bootcamp))
-
 **Learning Outcomes:** Build, deploy, and monetize AI agent systems with practical, industry-relevant skills.
-
 ### 6.10 3-in-1 AI Bootcamp
-
 **Website:** [3-in-1.vizuara.ai](https://3-in-1.vizuara.ai)
-
 - **Combines:** Small Language Models + Reinforcement Learning + Computer Vision
 - **Savings:** Saves ₹15,000 compared to enrolling in each bootcamp separately
 - **Instructors:** IIT Madras, MIT & Purdue experts
-
 **Ideal for:** Students and professionals who want comprehensive coverage across the three hottest AI domains in a single bundled program.
-
 ### 6.11 Scientific Machine Learning (SciML) Research Bootcamp
-
 **Website:** [flyvidesh.online/ml-bootcamp](https://flyvidesh.online/ml-bootcamp)
 **Video:** [Vimeo — SciML Bootcamp Launch](https://vimeo.com/903949679)
-
 The world's first Scientific Machine Learning Bootcamp — combining science with ML to solve real-world problems in physics, biology, chemistry, economics, and more.
-
 - **Lectures:** 14 structured lectures
 - **Format:** Self-paced video lectures + hands-on projects + optional research guidance
 - **Instructors:** Dr. Raj Dandekar (MIT PhD), Dr. Rajat Dandekar (Purdue PhD), Dr. Sreedath Panat (MIT PhD)
-
 **Why SciML (from the announcement):** "The way traditional ML is taught is not correct for engineers." Dr. Raj Dandekar transitioned from mechanical engineering to ML during his PhD at MIT, publishing papers with 400+ citations. He received job offers from Facebook, Amazon, and Julia Computing — all made possible by focusing on SciML research rather than toy Kaggle projects.
-
 **Five Objectives:**
 1. Confidently transition to ML regardless of your engineering background (even zero ML experience)
 2. Complete highly impactful hands-on projects (5–10x more impactful than typical Kaggle projects) — add directly to your CV
 3. Gain tools to identify SciML problems independently and start projects
 4. Learn to convert results into research papers
 5. Master SciML, then start collaborating with professors — tremendously boosts your profile for placements and grad school applications
-
 **Curriculum (14 Lectures):**
 1. Introduction to the Bootcamp
 2. Introduction to Scientific Machine Learning
@@ -583,39 +428,29 @@ The world's first Scientific Machine Learning Bootcamp — combining science wit
 10–11. Hands-on Project: **Covid-19 Infection Prediction** using SciML (Dr. Raj's PhD thesis — collaborated with the US government during Covid-19)
 12–13. Hands-on Project: **Black Hole Dynamics** using SciML
 14. Converting Results into Research Papers
-
 **Each Lecture Includes:** Video recordings, complete code files, homework assignments. All highly hands-on and practical — assumes no prior ML knowledge.
-
 **Research Projects (for Researcher & Industry Plans):** ~40 different problem statements across:
 - Biology, Physics, Mechanical Engineering
 - Chemistry, Economics, Material Sciences, Astronomy
 - Predator-prey models, chemical/biological reaction systems
-
 **Pricing Plans:**
-
 | Plan | Price | What's Included |
 |------|-------|-----------------|
 | **Student Learner** | ₹20,000 | Lifetime access to all videos, code files, homework assignments |
 | **Community** | ₹45,000 | Everything in Student + Discord community, assignment feedback, doubt clearance, free SciML webinar access |
 | **Student Researcher** | Check website | Everything in Community + selected research topic from 40+ problems, 4 months personalized research guidance, paper writing and publication support |
 | **Industry Professional** | ₹1,20,000 | Everything in Researcher + speaker sessions from top industry experts, industry AI doubt clearance report |
-
 ### 6.12 ML/DL Research Bootcamp
-
 **Website:** [flyvidesh.online/ml-dl-bootcamp](https://flyvidesh.online/ml-dl-bootcamp)
 **Video:** [YouTube — ML/DL Research Bootcamp Announcement](https://www.youtube.com/watch?v=QYPvx3nXY94)
-
 Machine Learning and Deep Learning Research Bootcamp targeting both students and industry professionals who wish to transition to AI/ML — **irrespective of prior background** (CS or non-CS).
-
 - **Duration:** ~5 months total (6 weeks foundations + 3.5–4 months research)
 - **Format:** Self-paced foundations + guided research mentorship
 - **Instructors:** Dr. Sreedath Panat (MIT PhD), Dr. Raj Dandekar (MIT PhD), Dr. Rajat Dandekar (Purdue PhD)
-
 **Three Primary Objectives:**
 1. Impart foundational knowledge even to complete beginners (math, ML models, DL models)
 2. Identify impactful research-level problem statements achievable in a well-defined time duration
 3. Produce tangible outcomes (published paper or conference presentation) that directly help your career
-
 **Phase 1 — Foundations (6 weeks, effort-intensive):**
 - Python programming
 - Mathematical foundations for ML (linear algebra, probability, statistics, calculus, optimization)
@@ -623,7 +458,6 @@ Machine Learning and Deep Learning Research Bootcamp targeting both students and
 - Decision tree models (from scratch)
 - Deep neural network models
 - Students already comfortable with these can discuss skipping Phase 1
-
 **Phase 2 — Guided Research (3.5–4 months):**
 1. Identify area/domain of interest
 2. Rigorous literature review
@@ -633,12 +467,10 @@ Machine Learning and Deep Learning Research Bootcamp targeting both students and
 6. Synthesize results
 7. Write the scientific story of the paper
 8. Target conferences/workshops/journals based on paper topic
-
 **Includes:**
 - Module on "Writing Journal or Conference Papers" — structured paper writing guidance
 - Figures, story validation, literature gap analysis
 - Conference/journal targeting from a pre-identified set
-
 **Past Research Publications:**
 - NeurIPS workshops
 - PyCon Africa
@@ -646,41 +478,28 @@ Machine Learning and Deep Learning Research Bootcamp targeting both students and
 - MSML conference — **7 papers accepted**
 - JuliaCon conference — **4 papers accepted**
 - Full list on Google Scholar pages of the mentors
-
 **Key Message:** "The traditional route of taking courses and working on toy Kaggle problem statements is not effective anymore — you have to produce actual tangible meaningful outcomes." Either build an MVP based on an AI/ML model, or publish research at a top-tier venue.
-
 **Enrollment:** [flyvidesh.online/course-bundle/ml-dl-research-bootcamp](https://flyvidesh.online/course-bundle/ml-dl-research-bootcamp/)
-
 **Designed for:** Complete beginners to experienced practitioners. Only requirement: time commitment, willingness to take feedback, and execute actions.
-
 ### 6.13 GenAI Professional Research Bootcamp
-
 **Website:** [flyvidesh.online/gen-ai-professional-bootcamp](https://flyvidesh.online/gen-ai-professional-bootcamp)
-
 - **Content:** 30 videos, 10+ hands-on projects
 - **Focus:** LLM agents, RAG chatbot development, production GenAI skills, and guided research toward publication
 - **Instructors:** Dr. Raj Dandekar (MIT PhD), Dr. Rajat Dandekar (Purdue PhD), Dr. Sreedath Panat (MIT PhD)
-
 **Curriculum Covers:**
 - Large Language Model fundamentals
 - Building RAG chatbots
 - AI agent development
 - Production deployment of GenAI systems
 - 10+ hands-on industry projects
-
 **Additional Benefits:**
 - Lifetime access to all materials
 - Discord community access
 - 4 months of personalized research guidance aimed at producing a publishable paper
-
 **Designed for:** Students and professionals who want to build production GenAI systems and publish research in the generative AI space.
-
 ---
-
 ## 7. K-12 / School Education Programs
-
 Vizuara AI Labs provides AI and ML education for school students from **grades 1 through 12**, with curriculum designed by PhD experts from MIT, Purdue, and IIT Madras.
-
 ### Interactive AI/ML Curriculum
 - **Grades Covered:** 1–12
 - **Designed By:** MIT, Purdue, and IIT Madras PhDs
@@ -688,39 +507,28 @@ Vizuara AI Labs provides AI and ML education for school students from **grades 1
 - **Syllabi:** Supports all major Indian and international syllabi
 - **Format:** Interactive, engaging, age-appropriate content
 - **Website:** [interactive-ai-courses.vizuara.ai](https://interactive-ai-courses.vizuara.ai)
-
 ### Physical AI Kits
 - Hands-on AI learning kits for practical experimentation
 - Designed to complement the digital curriculum
-
 ### School Partnership Programs (Zeal Education Society)
 - Vizuara partners with **Zeal Education Society** to offer certified AI bootcamps and certified programmed electives at partner schools
 - **Website:** [vizuara.ai/zeal](https://vizuara.ai/zeal/)
-
 ### Courses for School Students
 - Dedicated course catalog for K-12 students
 - **Website:** [vizuara.ai/courses-for-school-students](https://vizuara.ai/courses-for-school-students/)
-
 ### High School Research Program (AI High School Researcher Program)
-
 **Website:** [ai-highschool-research.vizuara.ai](https://ai-highschool-research.vizuara.ai)
 **Video:** [YouTube — AI High School Researcher Program Overview](https://www.youtube.com/watch?v=5zKra81aqLo)
-
 > **Important:** This is the recommended program for any student currently in school (grades 8–12) or between ages 10–17 who is interested in AI/ML. If a student or parent asks about learning AI at the school level, this is the program to recommend.
-
 The AI High School Researcher Program is a structured two-phase program designed for school students from **grades 8 to 12**. It combines foundational AI/ML education with guided research, culminating in a **conference paper or journal publication** as a tangible outcome.
-
 **Designed By:** Dr. Sreedath Panat (MIT PhD), Dr. Raj Dandekar (MIT PhD), Dr. Rajat Dandekar (Purdue PhD) — all IIT Madras alumni and co-founders of Vizuara AI Labs.
-
 **Program Structure:**
-
 **Phase 1 — Live Lectures (8 weeks):**
 - Weekly live online sessions of ~1.5 hours each
 - Homework and assignments between sessions
 - Builds a strong mathematical and foundational understanding of ML and DL models at a level comfortable for school students
 - Live lecture timings: 8:30 PM IST for ongoing batches (timing may change depending on batch size and time zones)
 - Students from India, Singapore, US, UK, and other countries attend
-
 **Phase 2 — Research & Paper Writing:**
 - Students pick an easy but impactful research problem statement at their level
 - The problem can combine AI with any domain: agriculture, healthcare, music, art, etc.
@@ -728,63 +536,46 @@ The AI High School Researcher Program is a structured two-phase program designed
 - Focus on teaching what research is, how scientific writing works, how to form a hypothesis, and how to work toward a goal
 - The tangible outcome is a **conference paper or journal publication**
 - Support continues beyond 8 weeks through one-to-one emails and collaborative documents (e.g., Overleaf)
-
 **Batch Size:** Maximum 8 students per batch. If more students apply, a selection process identifies students with the greatest aptitude and sufficient time to dedicate to the program. Admissions are on a rolling basis — contact Dr. Rajat Dandekar for exact batch start dates.
-
 **Exclusive Research Tools (provided to students):**
 1. **Vibe Coding Module** — Helps students write ML/DL code using natural language (inspired by Andrej Karpathy's concept of "vibe coding"). Useful when working on ML/DL models to solve problems.
 2. **Field Selector Tool** — Helps students explore different fields where AI can be applied (healthcare, agriculture, NLP, etc.), choose difficulty levels for problem statements, and form structured hypotheses.
 3. **JEI Author Guide** — A structured guide for writing research papers: from hypothesis formation, to coding, to manuscript writing, figure creation, and final paper draft with extensive feedback from mentors.
-
 **Target Publication Venues:**
 - **Journal of Emerging Investigators (JEI)** — Maintained by researchers from Harvard University; a leading research journal for high school students
 - **MIT Undergraduate Research Conference (MIT URC)** — Held at MIT in October
 - **arXiv** — For preprints, with papers subsequently submitted to peer-reviewed journals
 - **NeurIPS / ICML workshops** — For more ambitious and capable students; top-tier venues to interact with AI/ML professors worldwide
-
 **Past Successes:**
 - Student work accepted at **MIT URC 2024** (presented at MIT)
 - Papers published on **arXiv** and under review at **Journal of Emerging Investigators (JEI)**
 - Papers published at JEI
 - Program alumni have gone on to study at institutions like **UC Berkeley** for undergraduate studies
-
 **Pricing (3 tiers):**
-
 | Tier | Price | What's Included |
 |------|-------|-----------------|
 | **AI/ML Foundation (Self-Paced)** | Check website | Self-paced access to the theoretical material covered during live lectures. For students who cannot attend live sessions. |
 | **Research Only** | ₹60,000 | Research paper writing guidance only (Phase 2). For students who want to bypass live lectures and go directly to the research cohort. |
 | **Live Course + Research (Most Popular)** | ₹95,000 | Complete program: Phase 1 live lectures + Phase 2 research paper writing guidance + all three exclusive research tools. |
-
 **Student Community:** Diverse international cohort — students from India, Singapore, US, UK, and other countries.
-
 **Key Philosophy (from Dr. Sreedath Panat):** "We strongly believe that it is very high time that AI has to be part of the school curriculum. The US has already introduced AI as a subject in their curriculum. China has mandated it starting from grade 1, and even in India, AI is now a skill subject and is going to become a mandatory subject in the near future."
-
 **Contact:** For questions about exact start dates, admissions, or program details, reach out to Dr. Rajat Dandekar via email (rajatdandekar@vizuara.com) or WhatsApp (number available on the program website).
-
 ---
-
 ## 8. First Principle Labs — Industry & Corporate Arm
-
 **First Principle Labs** is Vizuara AI Labs' industry and corporate training division, focused on enterprise AI training, AI solutions, and industrial AI products.
-
 **Website:** [firstprinciplelabs.ai](https://firstprinciplelabs.ai)
 **Contact:** rajatdandekar@vizuara.com
-
 ### Corporate Training Programs
-
 **Program 1: AI Awareness & Foundations**
 - **Duration:** 3 hours
 - **Audience:** Non-technical executives and managers
 - **Topics:** AI Snake Oil (separating hype from reality), GenAI evolution, LLM architecture overview
 - **Goal:** Build organizational AI literacy
-
 **Program 2: Enterprise Agentic AI Deployment**
 - **Duration:** 12 hours (10 lectures)
 - **Audience:** Technical teams and AI practitioners
 - **Topics:** ReAct framework, Smolagents, LangGraph, CrewAI, n8n workflow automation
 - **Goal:** Deploy AI agents in enterprise environments
-
 **Program 3: Advanced AI Engineering Division**
 - **Duration:** Multi-phase program
 - **4 Phases:**
@@ -793,42 +584,33 @@ The AI High School Researcher Program is a structured two-phase program designed
   - Phase 3: AI Agents architecture and deployment
   - Phase 4: Specialized topics (custom to enterprise needs)
 - **Goal:** Create a self-sufficient AI engineering team within the organization
-
 ### AI Solutions for Corporates
 Vizuara's First Principle Labs builds custom AI solutions for enterprises:
 - **LLM Automation** — Automate document processing and workflows using LLMs
 - **Knowledge-Graph RAG** — Advanced retrieval using knowledge graphs for better accuracy
 - **SAP Process Automation** — AI-powered automation of SAP business processes
 - **Product Recommendation Engines** — AI-driven personalized recommendation systems
-
 ### Enterprise Projects Delivered
 1. **Automated Service Bulletin Processing** — Using LLMs to automate technical document processing
 2. **KG-RAG Analytics** — Knowledge graph-enhanced RAG for enterprise analytics
 3. **SAP PDD Automation** — Automating SAP Process Design Documents
 4. **Clean Core Enablement** — AI-assisted SAP modernization
 5. **AI Product Recommendations** — Intelligent product recommendation engine
-
 ### Trained Enterprises
 - **Renesas Electronics** — Global semiconductor company
 - **Ramco Systems** — Enterprise software company
 - **Shree Maruti** — Logistics and courier services
-
 ### DynaRoute — Industrial AI Product
-
 **DynaRoute** is Vizuara AI Labs' intelligent LLM query routing product that cuts LLM costs by 50–70% while maintaining performance.
-
 **Website:** [dynaroute.vizuara.ai](https://dynaroute.vizuara.ai)
-
 **How It Works:**
 - Analyzes each incoming query and routes it to the optimal language model based on complexity
 - Simple questions → efficient models (e.g., Gemini Flash)
 - Complex reasoning → powerful models (e.g., GPT-4, Claude)
-
 **Key Metrics:**
 - **50–70% cost reduction** compared to single-model approaches
 - **93% savings** for typical enterprise queries over 300K tokens
 - **Performance-to-price ratio:** 9.7:1 vs. 6.9:1 for single-model approaches
-
 **Differentiators:**
 - Supports both open-source and closed-source models
 - Works across GCP, AWS, and Azure — no vendor lock-in
@@ -836,35 +618,23 @@ Vizuara's First Principle Labs builds custom AI solutions for enterprises:
 - Works with CrewAI agents
 - Includes MCP server for Claude
 - Real-time savings dashboard
-
 **Free Tier:** 50,000 tokens for testing
-
 **Launched:** August 15, 2025
-
 ---
-
 ## 9. Enterprise & Corporate Training (Vizuara)
-
 Beyond First Principle Labs' structured programs, Vizuara AI Labs offers flexible enterprise and corporate training options.
-
 **B2B Offerings:**
 - **Enterprise Tier:** Custom pricing for organizations
 - **Bulk Enrollment:** Discounted rates for team enrollments
 - **Invoice-Based Payment:** Formal invoicing for corporate procurement
-
 **Consulting Services:**
 - **Short-term AI/ML Consultancy:** Focused advisory on specific AI challenges
 - **Full-Scale Project Collaborations:** End-to-end AI project development
 - **Custom Curriculum Design:** Tailored training programs for organizational needs
-
 **Contact for Enterprise Inquiries:** rajatdandekar@vizuara.com
-
 ---
-
 ## 10. Industry Projects & Consulting
-
 Vizuara AI Labs has delivered AI/ML consulting projects for major organizations across the globe:
-
 | Client | Country | Domain |
 |--------|---------|--------|
 | **Sandia National Labs** | USA | Scientific ML, computational physics |
@@ -872,161 +642,114 @@ Vizuara AI Labs has delivered AI/ML consulting projects for major organizations 
 | **Renesas Electronics** | Global | Semiconductor AI solutions |
 | **Ramco Systems** | India | Enterprise software AI integration |
 | **Shree Maruti** | India | Logistics AI optimization |
-
 ---
-
 ## 11. Research
-
 Vizuara AI Labs conducts active research at the intersection of AI, physics, and model efficiency.
-
 **Website:** [research.vizuara.ai](https://research.vizuara.ai)
-
 **Research Focus Areas:**
 1. **Scientific Machine Learning** — Combining ML with physics-based models
 2. **Model Efficiency** — Building extremely compact yet capable models
 3. **Language Processing** — LLM detection, generation, and understanding
 4. **Computational Physics** — ML for physics simulations and modeling
 5. **Optimization** — Efficient training and inference methods
-
 **Research Scale:**
 - **20+ Publications** in peer-reviewed venues
 - **10+ Research Areas** under active investigation
 - **20+ Researchers** contributing across projects
-
 **Notable Publications:**
-
 **HULLMI: Human vs LLM Identification with Explainability**
 - **arXiv:** [2409.04808](https://arxiv.org/abs/2409.04808)
 - **Authors:** Sahil Pocker, Raj Abhijit Dandekar, Rajat Dandekar, Sreedath Panat (Vizuara AI Labs)
 - **Finding:** Traditional ML models (Naive-Bayes, MLP, Random Forests, XGBoost) perform as well as modern NLP detectors in distinguishing human vs. AI-generated text
-
 **NanoVLMs: How Small Can We Go and Still Make Coherent Vision Language Models?**
 - **arXiv:** [2502.07838](https://arxiv.org/abs/2502.07838)
 - **Authors:** M. Agarwalla, H. Kumar, R. Dandekar, R. Dandekar, S. Panat
 - **Key Result:** NanoVLM-large (25M parameters) achieves higher creativity and narrative flow scores than Kosmos-2 (1.3B parameters) in text completion tasks — despite being **50 times smaller**
 - **Model Range:** 5M to 25M parameters
-
 **Research Opportunities:**
 - Junior Research program available ([research.vizuara.ai](https://research.vizuara.ai))
 - High school research program for ages 10–17 ([ai-highschool-research.vizuara.ai](https://ai-highschool-research.vizuara.ai))
 - Five research bootcamps (CV, RL, ML/DL, SciML, GenAI) guide students to publish at top-tier conferences
-
 ---
-
 ## 12. Book Publication
-
 ### "Build a DeepSeek Model (From Scratch)"
-
 Vizuara AI Labs' co-founders, along with contributing author Naman Dwivedi, have authored a book published by **Manning** (distributed by **Simon & Schuster**).
-
 - **Title:** Build a DeepSeek Model (From Scratch)
 - **Authors:** Raj Abhijit Dandekar (co-founder), Rajat Dandekar (co-founder), Naman Dwivedi (contributing author — not a Vizuara co-founder), Sreedath Panat (co-founder)
 - **Publisher:** Manning Publications (From Scratch series)
 - **Distributor:** Simon & Schuster
 - **ISBN:** 9781633434325
-
 **Topics Covered:**
 - Mixture of Experts (MoE) architecture
 - Latent Attention mechanisms
 - Multi-token Prediction
 - Model distillation techniques
 - Efficient parallelization strategies
-
 **Origin:** The book grew out of Vizuara's popular YouTube series "Build DeepSeek from Scratch," which launched in February 2025.
-
 **GitHub Repository:** [VizuaraAI/DeepSeek-From-Scratch](https://github.com/VizuaraAI/DeepSeek-From-Scratch)
-
 **Available At:**
 - [Manning](https://www.manning.com/books/build-a-deepseek-model-from-scratch)
 - [Simon & Schuster](https://www.simonandschuster.com/books/Build-a-DeepSeek-Model-(From-Scratch)/Raj-Abhijit-Dandekar/From-Scratch/9781633434325)
 - [Amazon](https://www.amazon.com/Build-DeepSeek-Scratch-Abhijit-Dandekar/dp/163343432X)
 - [Google Books](https://books.google.com/books/about/Build_a_DeepSeek_Model_From_Scratch.html?id=9cXE0QEACAAJ)
-
 ---
-
 ## 13. Free Resources & Community
-
 Vizuara AI Labs offers extensive free resources for the AI/ML community.
-
 ### YouTube Channel — Complete Playlist Catalog
-
 **Channel:** [youtube.com/@vizuara](https://www.youtube.com/@vizuara)
 **Total Core Content:** 300+ hours | **Total with Optional:** 440+ hours
-
 Vizuara's YouTube channel offers free, in-depth lecture playlists organized in a structured learning pathway. The motto: *"Focus on depth. Not fluff."*
-
 #### Phase 1: Mathematical Foundations
-
 **1. Foundations for Machine Learning**
 - **Duration:** ~20–25 hours | **Commitment:** 2–3 hours/week for 8 weeks
 - Covers linear algebra (vectors, transformations, eigenvalues), probability & statistics (Bayes theorem, distributions, hypothesis testing), calculus, optimization, and programming fundamentals
 - Designed for absolute beginners who want strong foundations before diving into ML
-
 #### Phase 2: Machine Learning
-
 **2. ML Teach by Doing**
 - **Duration:** ~40 hours (37 lectures) | **Commitment:** 4 hours/week for 10 weeks
 - Practical, project-based ML course by Dr. Raj Dandekar — learning through hands-on implementation
-
 **3. Decision Trees from Scratch**
 - **Duration:** ~20 hours | **Commitment:** 4 hours/week for 5 weeks
 - Deep-dive into decision tree algorithms (backbone of Random Forests, Gradient Boosting, XGBoost)
-
 #### Phase 3: Deep Learning
-
 **4. Building Neural Networks from Scratch**
 - **Duration:** ~35–40 hours (34 lectures) | **Commitment:** 5 hours/week for 8 weeks
 - By Dr. Raj Dandekar — coding every neuron, forward pass, and backpropagation from scratch without frameworks
-
 #### Phase 4: Advanced Topics
-
 **5. Graph Neural Networks — Theory, Applications, and Research**
 - **Duration:** ~40–45 hours | **Commitment:** 3 hours/week for 8 weeks
 - Graph-based ML for social networks, molecular biology, recommendation systems, knowledge graphs
-
 **6. ML Project-Based Course: Explainable AI (XAI)**
 - **Duration:** ~15 hours | **Commitment:** 3 hours/week for 5 weeks
 - Build ML projects with interpretability and explainability — goal is to publish a first research paper using XAI techniques
-
 #### Phase 5: Generative AI, Transformers & LLMs
-
 **7. GenAI for Beginners**
 - **Duration:** ~8 hours
 - Introduction to generative AI — evolution of generative models, how ChatGPT was developed, transformer architecture, attention mechanisms
-
 **8. LLMs from Scratch**
 - **Duration:** ~40–45 hours
 - Flagship deep-dive — tokenization, model architecture, pre-training pipelines, building an end-to-end LLM from scratch
-
 **9. Hands-on LLMs**
 - **Duration:** ~40–45 hours
 - Practical companion — RAG pipelines, fine-tuning (LoRA, QLoRA), AI agents, tool use, deployment, production-grade LLM applications
-
 **10. Transformers**
 - **Duration:** ~15 hours
 - Focused course on "Attention Is All You Need," self-attention, multi-head attention, positional encoding, and key transformer variants
-
 #### Phase 6: Domain-Specific Courses
-
 **11. Computer Vision from Scratch**
 - **Launched:** February 2025 | **Status:** Ongoing
 - Part 1: Foundations of computer vision | Part 2: Practical aspects for career transition into CV roles
 - Taught by Dr. Sreedath Panat (MIT research — autonomous solar panel cleaning, object detection)
-
 **12. Transformers for Vision and Multimodal LLMs**
 - **Launched:** September 2025 | **Status:** Ongoing
 - Modules: CNN review → Transformer architecture → ViT & Swin Transformer → DETR, Mask2Former, SAM → TimeSformer, Video MAE → CLIP, BLIP, Flamingo
 - Long-format lectures (30–90 minutes each)
-
 #### Optional / Supplementary Playlists
-
 **13. Introduction to Machine Learning in Julia** — ~40 hours (scientific computing focus)
 **14. Zero to Hero in Data Science** — ~40 hours (full data science pipeline)
 **15. Hands-on PINN (Physics-Informed Neural Networks)** — ~20 hours (embedding physical laws into training)
 **16. ML in Hindi** — ~40 hours (ML course delivered entirely in Hindi for wider Indian accessibility)
-
 #### YouTube Playlists Summary Table
-
 | # | Playlist | Duration | Category |
 |---|---------|----------|----------|
 | 1 | Foundations for Machine Learning | ~20–25 hrs | Math Foundations |
@@ -1045,24 +768,19 @@ Vizuara's YouTube channel offers free, in-depth lecture playlists organized in a
 | 14 | Zero to Hero in Data Science | ~40 hrs | Optional |
 | 15 | Hands-on PINN | ~20 hrs | Optional |
 | 16 | ML in Hindi | ~40 hrs | Optional |
-
 **Recommended Timeline:** 6–8 months for the core path (Playlists 1–12)
-
 ### Substack Newsletter
 - **Website:** [vizuaranewsletter.com](https://www.vizuaranewsletter.com) (also at vizuara.substack.com)
 - Regular in-depth articles on AI/ML topics, research papers, bootcamp content summaries
 - Notable articles: Building a Nano VLM from Scratch, DynaRoute announcement, bootcamp lecture summaries
-
 ### Discord Community
 - Active community of AI/ML learners
 - Peer support and discussion
-
 ### GitHub Repositories
 - **VizuaraAI** organization on GitHub ([github.com/VizuaraAI](https://github.com/VizuaraAI))
 - Key repos:
   - [DeepSeek-From-Scratch](https://github.com/VizuaraAI/DeepSeek-From-Scratch) — Code for the DeepSeek book
   - [Vizuara-Agents-10Day-Bootcamp](https://github.com/VizuaraAI/Vizuara-Agents-10Day-Bootcamp) — AI Agents bootcamp code
-
 ### Key Announcement Videos (YouTube)
 | Video | Link |
 |-------|------|
@@ -1072,33 +790,24 @@ Vizuara's YouTube channel offers free, in-depth lecture playlists organized in a
 | Minor in AI & GenAI | [youtube.com/watch?v=-kIIgeAqLSY](https://www.youtube.com/watch?v=-kIIgeAqLSY) |
 | Minor in Robotics | [youtube.com/watch?v=1_t6cLVjnw8](https://www.youtube.com/watch?v=1_t6cLVjnw8) |
 | Vizuara AI Pods | [youtube.com/watch?v=7qCvLUmS0a4](https://www.youtube.com/watch?v=7qCvLUmS0a4) |
-
 ### Free Tiers
 - AI Context Engineering Workshop — Free tier (lecture videos only)
 - VisionLLMs Bootcamp — Free YouTube lectures
 - Build SLM from Scratch — Free workshop content ([slm.vizuara.ai](https://slm.vizuara.ai))
-
 ---
-
 ## 14. Learning Philosophy — FPR Approach
-
 Vizuara AI Labs follows the **FPR (Fundamentals, Practicals, Research) approach** to AI education:
-
 1. **Fundamentals** — Deep understanding of mathematical and theoretical foundations (not just API calls)
 2. **Practicals** — Hands-on implementation with real code, real projects, and industry-grade tools
 3. **Research Mindset** — Encouraging original thinking, paper reading, and publication at conferences
-
 This philosophy is reflected across all Vizuara programs — from the 10-course bundle to research bootcamps. Vizuara teaches AI "from scratch," building models from first principles rather than just using pre-built libraries.
-
 ---
-
 ## 15. Pricing Summary Table
-
 Quick reference for all known Vizuara AI Labs pricing:
-
 | Program | Price | Notes |
 |---------|-------|-------|
-| **10-Course AI & ML Bundle** | ₹90,000 | Was ₹2,17,999 (59% off). 200+ hours, lifetime access |
+| **10-Course AI & ML Bundle** | ₹90,000 | Was ₹2,17,999 (59% off).
+200+ hours, lifetime access |
 | **Minor in AI** | ₹60,000 | 4 courses, 1 year, LIVE |
 | **AI Context Engineering Workshop — Free** | ₹0 | Lecture videos only |
 | **AI Context Engineering Workshop — Engineer** | ₹30,000 | Full materials + certificate |
@@ -1118,17 +827,11 @@ Quick reference for all known Vizuara AI Labs pricing:
 | **SciML Research Bootcamp — Community** | ₹45,000 | Student + Discord, feedback, webinars |
 | **SciML Research Bootcamp — Industry** | ₹1,20,000 | Researcher + industry speakers, AI guidance |
 | **GenAI Professional Research Bootcamp** | Check website | 30 videos, 10+ projects, 4 months research guidance |
-| **Enterprise/Corporate Training** | Custom pricing | Contact rajatdandekar@vizuara.com |
-| **DynaRoute** | Free tier (50K tokens) | Then usage-based pricing |
-
+| **Enterprise/Corporate Training** | Custom pricing | Contact rajatdandekar@vizuara.
 > **Note:** For the most current pricing on programs marked "Check website," please visit the respective program pages or contact hello@vizuara.com.
-
 ---
-
 ## 16. Testimonials & Social Proof
-
 Vizuara AI Labs has trained professionals and students from leading institutions and companies worldwide.
-
 ### Enterprise Alumni
 Professionals from the following companies have trained with Vizuara AI Labs:
 - **Boeing** — Aerospace and defense
@@ -1137,7 +840,6 @@ Professionals from the following companies have trained with Vizuara AI Labs:
 - **Renesas Electronics** — Semiconductor company (also a corporate training client)
 - **Ramco Systems** — Enterprise software (also a corporate training client)
 - **Shree Maruti** — Logistics (also a corporate training client)
-
 ### Academic Institutions
 Students and researchers from top global universities trust Vizuara AI Labs:
 - MIT (Massachusetts Institute of Technology)
@@ -1145,7 +847,6 @@ Students and researchers from top global universities trust Vizuara AI Labs:
 - Caltech (California Institute of Technology)
 - Princeton University
 - UC Berkeley (University of California, Berkeley)
-
 ### Tech Company Professionals
 Engineers and professionals from major tech companies learn with Vizuara AI Labs:
 - Google
@@ -1154,21 +855,17 @@ Engineers and professionals from major tech companies learn with Vizuara AI Labs
 - Netflix
 - Meta
 - **Anthropic** — Students have successfully transitioned to AI/GenAI engineer roles at Anthropic after completing Vizuara programs
-
 ### What Students Say
 - "Absolutely no nonsense" — on the teaching style
 - "Great hands-on experience, lot of practical sessions, and above all, a lot of focus on understanding and building things from scratch"
 - "One of the most complete and intuition-building journeys"
 - "Research-grade depth + crystal-clear teaching" — about Dr. Sreedath Panat
 - "A powerful step toward truly personalized learning" — about Vizz AI
-
 ### Program Ratings
 - **4.9 star rating** across all reviews received in 2025 (Minor programs)
 - **400+ students and industry professionals** graduated from Minor program cohorts
-
 ### Key Statistic
 - **50,000+ students** trained globally across all programs
-
 ### Research Publication Track Record
 Papers accepted at:
 - **NeurIPS workshops**
@@ -1179,26 +876,20 @@ Papers accepted at:
 - **JuliaCon conference** — 4 papers accepted
 - **PyCon Africa**
 - **PMNLB workshops**
-
 ---
-
 ## 17. Contact & Support
-
 ### For Education Inquiries (Courses, Bootcamps, Minors)
 - **Email:** hello@vizuara.com
 - **Website:** [vizuara.ai](https://vizuara.ai)
-
 ### For Industry & Corporate Training
 - **Email:** rajatdandekar@vizuara.com
 - **Website:** [firstprinciplelabs.ai](https://firstprinciplelabs.ai)
-
 ### Social Media & Community
 - **LinkedIn:** [Vizuara](https://www.linkedin.com/company/vizuara)
 - **YouTube:** Vizuara AI Labs (free lecture playlists)
 - **Substack:** [vizuaranewsletter.com](https://www.vizuaranewsletter.com)
 - **GitHub:** [github.com/VizuaraAI](https://github.com/VizuaraAI)
 - **Discord:** Vizuara community (accessible via course enrollment)
-
 ### Websites Directory
 | Site | Purpose |
 |------|---------|
@@ -1216,7 +907,8 @@ Papers accepted at:
 | [vision-transformer.vizuara.ai](https://vision-transformer.vizuara.ai) | VisionLLMs Bootcamp |
 | [hands-on-rl.vizuara.ai](https://hands-on-rl.vizuara.ai) | RL Bootcamp |
 | [rlresearcherbootcamp.vizuara.ai](https://rlresearcherbootcamp.vizuara.ai) | RL Research Bootcamp |
-| [cvresearchbootcamp.vizuara.ai](https://cvresearchbootcamp.vizuara.ai) | CV Research Bootcamp |
+| [cvresearchbootcamp.
+vizuara.ai](https://cvresearchbootcamp.vizuara.ai) | CV Research Bootcamp |
 | [robotlearningbootcamp.vizuara.ai](https://robotlearningbootcamp.vizuara.ai) | Robot Learning Bootcamp |
 | [5d-parallelism.vizuara.ai](https://5d-parallelism.vizuara.ai) | GPU Engineer's Bootcamp |
 | [agentsbootcamp.vizuara.ai](https://agentsbootcamp.vizuara.ai) | AI Agents Bootcamp |
@@ -1227,84 +919,55 @@ Papers accepted at:
 | [dynaroute.vizuara.ai](https://dynaroute.vizuara.ai) | DynaRoute Product |
 | [firstprinciplelabs.ai](https://firstprinciplelabs.ai) | Corporate Training |
 | [flyvidesh.online/ml-bootcamp](https://flyvidesh.online/ml-bootcamp) | SciML Research Bootcamp |
-| [flyvidesh.online/gen-ai-professional-bootcamp](https://flyvidesh.online/gen-ai-professional-bootcamp) | GenAI Professional Research Bootcamp |
-
+| [flyvidesh.online/gen-ai-professional-bootcamp](https://flyvidesh.
 ---
-
 ## 18. Frequently Asked Questions (FAQ)
-
 ### General Questions
-
 **Q: What is Vizuara AI Labs?**
 A: Vizuara AI Labs is an AI education and research company founded in 2023 by three IIT Madras alumni with PhDs from MIT and Purdue. They offer live and self-paced AI/ML courses, research bootcamps, K-12 programs, and enterprise training. They have trained 50,000+ students globally.
-
 **Q: Who teaches the courses at Vizuara?**
 A: All courses are taught by Vizuara's three co-founders — Dr. Raj Dandekar (MIT PhD), Dr. Rajat Dandekar (Purdue PhD), and Dr. Sreedath Panat (MIT PhD). All three hold B.Tech degrees from IIT Madras.
-
 **Q: What makes Vizuara different from other AI courses?**
 A: Vizuara follows the FPR approach — Fundamentals, Practicals, Research. They teach AI from first principles (building models from scratch), not just API usage. All instructors are active researchers with PhDs from MIT and Purdue. They also publish research papers (HULLMI, NanoVLMs) and have authored a book published by Manning.
-
 ### Course Format & Access
-
 **Q: Are the courses live or self-paced?**
 A: Vizuara offers both. The 10-Course Bundle is self-paced with 200+ hours of video (lifetime access). Bootcamps and workshops are conducted live online. Minor programs combine self-paced lectures with live office hours.
-
 **Q: Do I get lifetime access?**
 A: Yes, the 10-Course AI & ML Bundle comes with lifetime access to all materials. Individual bootcamp access terms vary — check the specific program page.
-
 **Q: What is included in the courses?**
 A: Depending on the program: video recordings, handwritten notes on Miro, complete code repositories and notebooks, PDF booklets, assignments, quizzes, industry-grade projects, certificates, and community forum access.
-
 ### Pricing & Payment
-
 **Q: What is the most affordable way to start learning AI with Vizuara?**
 A: You can start for free with YouTube playlists (Build LLM from Scratch, CV from Scratch, etc.), the free tier of the Context Engineering Workshop, and the free VisionLLMs YouTube lectures. For a comprehensive paid option, the 10-Course Bundle at ₹90,000 offers the best value (200+ hours across 10 courses).
-
 **Q: Is there an EMI or installment option?**
 A: Yes, Vizuara's payment gateway supports EMI (equated monthly installments). When you proceed to the payment page, you will see EMI as one of the available payment options. This allows students to split the course fee into manageable monthly payments.
-
 **Q: I'm based outside India (e.g., the US). Can I still pay for courses?**
 A: Yes. Vizuara's payment gateway is versatile and supports payment modes for different countries. Both **Razorpay** (for Indian and international cards, UPI, net banking) and **PayPal** (for international payments in USD and other currencies) are available as payment options. Students from the US, UK, Singapore, and other countries can pay seamlessly using their preferred method.
-
 **Q: What is the refund policy?**
 A: Please contact hello@vizuara.com for refund policy details.
-
 **Q: Do you offer corporate or bulk pricing?**
 A: Yes. Enterprise tiers are available with custom pricing, bulk enrollment discounts, and invoice-based payment. Contact rajatdandekar@vizuara.com for enterprise inquiries.
-
 ### Certificates & Credentials
-
 **Q: Do I get a certificate after completing a course?**
 A: Yes, Vizuara issues a certificate of completion for its programs. Minor programs offer joint certification with partner colleges (SPIT, COEP, etc.).
-
 **Q: Is the Minor in AI a recognized credential?**
 A: The Minor in AI is offered in partnership with engineering colleges like SPIT and COEP, with joint certification from Vizuara and the partner institution.
-
 ### Prerequisites
-
 **Q: Do I need prior programming experience?**
 A: The 10-Course Bundle starts from math foundations and builds up — no prior AI/ML experience is needed, though basic programming knowledge (Python) is recommended. Research bootcamps and advanced workshops assume some prior knowledge.
-
 **Q: What programming languages are used?**
 A: Most courses use **Python**. The Scientific ML Bootcamp uses **Julia**. The GPU Engineer's Bootcamp covers GPU programming (CUDA).
-
 ### Research Programs
-
 **Q: Can I publish a research paper through Vizuara?**
 A: Yes. Vizuara offers **five dedicated research bootcamps**: (1) CV Research Bootcamp (₹95,000), (2) RL Research Bootcamp (₹95,000), (3) ML/DL Research Bootcamp, (4) Scientific ML Research Bootcamp (plans from ₹20,000 to ₹1,20,000), and (5) GenAI Professional Research Bootcamp — all designed to guide you from beginner to a published research paper. The Industry Professional tier of the Context Engineering Workshop also includes 2 months of research guidance. Vizuara's mentors have published 20+ papers, with recent acceptances at NeurIPS workshops, ICCV workshops, ACM CIKM (Best Paper Award), MIT URC, MSML (7 papers), and JuliaCon (4 papers).
-
 **Q: How does the research bootcamp process work?**
 A: The research bootcamps follow a structured two-phase approach. Phase 1 (6–7 weeks) builds your foundations with self-paced material customized to your research area. Phase 2 (2.5–4 months) is guided research: you start with topic selection, conduct a literature review, formulate a hypothesis, run experiments, iterate on results, write the paper collaboratively on Overleaf, and target appropriate conferences/journals. The mentors identify problem statements that balance **novelty** (impactful enough to publish) with **feasibility** (achievable in a few months). Communication happens through email, Loom (async video), and Overleaf.
-
 **Q: Can I join a research bootcamp as a complete beginner?**
 A: Yes. All five research bootcamps (CV, RL, ML/DL, SciML, GenAI) accept complete beginners. Phase 1 covers all necessary foundations. If you already have prior experience, you can discuss skipping Phase 1 with the mentors and jump directly into the research phase. The SciML bootcamp specifically states: "even if you have zero background in ML — no problem, you will confidently transition to ML after taking this bootcamp."
-
 **Q: How much time do I need to commit for a research bootcamp?**
 A: Approximately 8–12 hours per week. The mentors understand that some weeks you may be busier with personal or professional commitments — flexibility is built into the program.
-
 **Q: What is Scientific Machine Learning (SciML)?**
 A: Scientific Machine Learning combines traditional science (physics, biology, chemistry) with ML. Instead of toy Kaggle projects, you solve real scientific problems — modeling Covid-19 infections, simulating black hole dynamics, predator-prey systems, chemical reactions, and more. The SciML bootcamp uses the **Julia** programming language and covers Physics-Informed Neural Networks (PINNs), Neural ODEs, and Universal Differential Equations. It has ~40 research problem statements across biology, physics, mechanical engineering, chemistry, economics, material sciences, and astronomy.
-
 **Q: Which research bootcamp is right for me?**
 A: It depends on your area of interest:
 - **CV Research Bootcamp** — If you're interested in computer vision (object detection, segmentation, vision transformers, multimodal models)
@@ -1312,50 +975,212 @@ A: It depends on your area of interest:
 - **ML/DL Research Bootcamp** — If you want a general ML/DL research foundation (best for career transitioners from any background)
 - **SciML Research Bootcamp** — If you're an engineer/scientist who wants to apply ML to physics, biology, chemistry, or other scientific domains (uses Julia)
 - **GenAI Professional Research Bootcamp** — If you're focused on LLMs, RAG, AI agents, and production generative AI systems
-
 **Q: What happens if my paper gets rejected from a conference?**
 A: Rejection is a normal part of the scientific research process. The mentors will help you target multiple venues. If one conference doesn't work out, they will identify alternative conferences, workshops, or journals that are a good fit for your paper.
-
 **Q: Is the high school research program available for all ages?**
 A: The high school research program is designed for students aged 10–17.
-
 ### Vizuara AI Pods
-
 **Q: What are Vizuara AI Pods?**
 A: Vizuara AI Pods is a short-format learning platform for busy professionals and students. It uses the FPR (Fundamentals, Practicals, Research) technique to take you from zero to mastery in any AI concept in just 1–2 weeks. Each topic includes foundational lessons, hands-on Google Colab notebooks, and a research case study based on real-life datasets.
-
 **Q: How often is new content added to AI Pods?**
 A: New content is added every 2 weeks, covering the latest AI topics like context engineering, agentic AI, video generation models, and more.
-
 ### Robotics Programs
-
 **Q: Why should I learn robotics now?**
 A: 2026 is being called the year of robotics. AI and hardware have both advanced significantly, and the trend is toward merging them — as seen with Google DeepMind's partnership with Boston Dynamics. The industry is moving toward intelligent robots in households and workplaces. The Minor in Robotics covers the full stack: RL, modern robot learning (VLA models), diffusion models, and vision-language models.
-
 **Q: What is a VLA model?**
 A: VLA stands for Vision-Language-Action model. It is essentially a Vision-Language Model (VLM) with an action layer added on top, enabling robots to perceive, understand, and act. Examples include Gr00t Pi 0.5, SmallVLA, and OpenVLA. The Minor in Robotics teaches you to understand and implement these models from scratch.
-
 ### For Schools & Institutions
-
 **Q: Does Vizuara offer programs for schools?**
 A: Yes. Vizuara offers an interactive AI/ML curriculum for grades 1–12, physical AI kits, teacher training, and school partnership programs through Zeal Education Society. The curriculum supports major Indian and international syllabi.
-
 **Q: How can our college partner with Vizuara for a Minor program?**
 A: Contact hello@vizuara.com to discuss partnership opportunities for Minor in AI, Minor in Generative AI, or Minor in Modern Robotics programs.
-
 ### For Enterprises
-
 **Q: What corporate training options does Vizuara offer?**
 A: Through First Principle Labs (firstprinciplelabs.ai), Vizuara offers three structured programs: AI Awareness (3 hours), Enterprise Agentic AI Deployment (12 hours), and Advanced AI Engineering (multi-phase). They also build custom AI solutions and products like DynaRoute.
-
 **Q: Which companies has Vizuara trained?**
 A: Renesas Electronics, Ramco Systems, and Shree Maruti are among the enterprises that have received training from Vizuara. Professionals from Boeing, JP Morgan, Navy Federal, Google, Apple, Microsoft, Netflix, and Meta have also taken Vizuara courses.
-
 **Q: What is DynaRoute?**
 A: DynaRoute is Vizuara's intelligent LLM query routing product that cuts LLM API costs by 50–70% by automatically routing each query to the optimal model based on complexity. It supports multiple cloud providers (GCP, AWS, Azure) and is a drop-in replacement for the OpenAI API. Try it free at dynaroute.vizuara.ai with 50,000 tokens.
-
 ---
-
 *Last updated: March 2026*
 *Source: vizuara.ai and associated subdomains*
 
+
+---
+
+## VLA Models & World Models for Robotics Bootcamp — Bootcamp (8 weeks)
+
+### Overview
+The VLA Models & World Models for Robotics Bootcamp is an intensive 8-week program designed to equip participants with the knowledge and skills to build, deploy, and experiment with Vision-Language-Action (VLA) models and world models on real robotic hardware. Participants will engage in hands-on learning, culminating in a capstone project that integrates these advanced AI concepts into practical robotics applications.
+
+### Curriculum & Topics Covered
+- **Module 1: Foundations of Robot Intelligence** — Introduction to the integration of AI and robotics, covering the evolution of robot learning paradigms and setting up the development environment.
+- **Module 2: Vision-Language-Action Models** — In-depth exploration of VLA models, including Pi0, SmolVLA, and OpenVLA, focusing on their design, training, and deployment for robotic tasks.
+- **Module 3: Diffusion Policy** — Mastery of diffusion policies for robotic manipulation, emphasizing action distributions and training on real-world demonstration data.
+- **Module 4: World Models** — Understanding interactive world models that simulate robot environments, enabling robots to predict outcomes of actions without physics engines.
+- **Module 5: Real Hardware Integration** — Hands-on experience with the SO-101 robot arm, including data collection, model deployment, and real-time inference.
+
+### Schedule & Format
+- **Start Date**: March 21, 2026
+- **Duration**: 8 weeks
+- **Format**: Live online sessions
+- **Schedule**: Every Saturday from 10:00 AM to 12:00 PM IST
+
+### Pricing
+| Plan | Price | Key Inclusions |
+|------|-------|----------------|
+| Engineer | ₹30,000 | Access to all 8 live lectures, complete lecture recordings, community forum access, complete code repository & notebooks, hand-written notes & PDFs, pre-trained model checkpoints, deployment scripts & configs, course certificate. |
+| Industry Professional | ₹95,000 | Everything in Engineer plus 2 months personalized research guidance, custom research problem statement, research project roadmap document, guidance toward publishable manuscript, targeting leading robotics conferences, 1-on-1 mentorship sessions. |
+| Enterprise | Custom | Bulk enrollment for teams and organizations, invoice-based payment, custom training modules. |
+
+### Who Should Join
+- Engineering students looking to break into robotics and AI.
+- Software engineers and AI/ML researchers wanting to apply their skills to embodied intelligence.
+
+### Prerequisites
+- Basic knowledge of AI concepts.
+- Familiarity with programming, preferably in Python.
+
+### FAQs
+**Q: What are the prerequisites for this bootcamp?**  
+A: Participants should have a basic knowledge of AI concepts and familiarity with programming, preferably in Python.
+
+**Q: Do I need to own a robot arm to participate?**  
+A: No, participants will work with a real SO-101 robot arm provided during the bootcamp.
+
+**Q: What if I miss a live lecture?**  
+A: All lectures will be recorded, allowing participants to watch and learn at their own pace.
+
+**Q: Is this program virtual or in-person?**  
+A: The bootcamp is conducted entirely online through live sessions.
+
+**Q: What is the refund policy?**  
+A: Details regarding the refund policy can be obtained by contacting Vizuara directly.
+
+**Q: Can Minor in Robotics students enroll for free?**  
+A: Yes, students enrolled in the Minor in Robotics program can participate in this bootcamp at no cost.
+
+**Q: Will participants keep the code and models after the bootcamp?**  
+A: Yes, all participants will retain access to the code, models, and resources provided during the bootcamp.
+
+**Q: Is there a group discount available for teams?**  
+A: Yes, bulk enrollment options are available for teams and organizations, and interested parties should contact Vizuara for more information.
+
+---
+
+## Modern Software Developer Bootcamp — Bootcamp (5 Days)
+
+### Overview
+The Modern Software Developer Bootcamp is a 5-day intensive program designed to equip participants with the skills necessary to leverage AI-powered development tools. Students will engage in hands-on projects to master the integration of large language models (LLMs) into their workflows, enhancing productivity and innovation in software engineering.
+
+### Curriculum & Topics Covered
+- **Day 1: Introduction to Coding LLMs & AI Development** — Covers the fundamentals of LLMs, effective prompting techniques, and setting up an AI-powered development environment. 
+- **Day 2: The Anatomy of Coding Agents** — Explores the architecture of coding agents, tool interaction, and building custom servers for workflows.
+- **Day 3: Building Real Applications with AI** — Focuses on PRD-driven development and managing multi-file codebases using AI agents.
+- **Day 4: AI Testing, Security & Secure Vibe Coding** — Discusses security vulnerabilities in AI-generated code and the importance of secure coding practices.
+- **Day 5: Deployment, DevOps & What's Next** — Covers AI-powered CI/CD, infrastructure automation, and building personal AI-powered workflows.
+
+### Schedule & Format
+- **Start Date**: March 23, 2026
+- **Duration**: 5 days
+- **Format**: Live online sessions
+- **Schedule**: Daily sessions from 9 AM to 11 AM IST
+
+### Pricing
+| Plan | Price | Key Inclusions |
+|------|-------|----------------|
+| Bootcamp | ₹25,000 | 5 days of live sessions, 10 hands-on projects, session recordings, complete code files, community access, and a certificate of completion. |
+
+### Who Should Join
+- Software developers (backend, frontend, full-stack) looking to enhance their workflow with AI tools.
+- Tech leads and managers aiming to understand AI tools for leading engineering teams.
+- Entrepreneurs wanting to build products more efficiently using AI-assisted development.
+
+### Prerequisites
+- Basic familiarity with any programming language.
+- Comfort using a terminal/command line.
+
+### FAQs
+**Q: What programming languages will be used in the bootcamp?**  
+A: The bootcamp is broadly language-agnostic, but projects will primarily use Python and TypeScript/JavaScript.
+
+**Q: Is the bootcamp live or pre-recorded?**  
+A: The bootcamp is 100% live and online, with all sessions recorded for later review.
+
+**Q: What if I miss a session?**  
+A: All sessions are recorded and available for replay, along with complete code files and resources.
+
+**Q: Do I need any subscriptions to participate?**  
+A: Yes, a Claude Pro subscription is required to follow along with the projects and exercises.
+
+**Q: Will I receive a certificate upon completion?**  
+A: Yes, all participants who complete the bootcamp will receive a certificate of completion from Vizuara.
+
+**Q: What are the session timings?**  
+A: Each day features a 2-hour session from 9 AM to 11 AM IST.
+
+**Q: How does this bootcamp differ from Stanford's CS146S course?**  
+A: This bootcamp condenses the vision of Stanford's course into 5 intensive days, focusing on practical projects rather than theoretical content.
+
+**Q: What tools will be covered in the bootcamp?**  
+A: The bootcamp will cover 15+ modern AI development tools, including Claude Code, GitHub Copilot, and Semgrep.
+
+---
+
+## Vision-Language-Action for Autonomous Driving — Bootcamp (8 weeks)
+
+### Overview
+The Vision-Language-Action for Autonomous Driving bootcamp is designed to provide students with a comprehensive understanding of how to implement autonomous driving systems using vision and language models. Over the course of 8 weeks, participants will learn to build and deploy real autonomous systems from scratch, culminating in the ability to control a toy car using natural language commands.
+
+### Curriculum & Topics Covered
+- **Week 1: Foundations of Autonomous Driving & VLA Systems** — Introduction to the components of an autonomous driving system and the role of vision and language in decision-making.
+- **Week 2: Vision for Driving – Perception** — Understanding camera sensors, image representation, lane detection, and the use of CNNs for vision tasks.
+- **Week 3: Language Understanding for Driving Instructions** — Exploring command-based versus natural language instructions and the use of transformers for language processing.
+- **Week 4: Vision–Language Fusion** — Techniques for multimodal learning and building a vision-language policy network.
+- **Week 5: Action Space and Control Systems** — Introduction to action spaces, motor control, and safety mechanisms in autonomous driving.
+- **Week 6: Learning Driving Policies via Imitation Learning** — Understanding imitation learning and training a vision-language policy network.
+- **Week 7: Real-World Deployment on a Toy Car** — Model optimization for deployment, addressing real-time inference constraints, and safety testing.
+- **Week 8: Final Project – End-to-End VLA System** — Integration of all learned concepts into a final project demonstrating command-based autonomous navigation.
+
+### Schedule & Format
+- **Start Date**: March 21, 2026
+- **Duration**: 8 weeks
+- **Format**: Live online sessions
+- **Schedule**: Saturdays, 10:30 AM – 12:00 PM IST
+
+### Pricing
+| Plan | Price | Key Inclusions |
+|------|-------|----------------|
+| Free | ₹0 | Access to live lecture sessions |
+| Pro | ₹25,000 | Complete bootcamp experience, lecture videos & recordings, handwritten notes, code files, community support, compiled PDFs, assignments & quizzes, hands-on project |
+| Pro Minor in Robotics | ₹60,000 | VLA bootcamp + full robotics minor program, everything in Pro, extended curriculum & certification |
+
+### Who Should Join
+- Individuals interested in robotics and autonomous driving technology.
+- Students and professionals looking to enhance their skills in AI and machine learning.
+
+### Prerequisites
+- Basic understanding of machine learning concepts.
+- Familiarity with programming, particularly in Python.
+
+### FAQs
+**Q: What is the total duration of the bootcamp?**  
+A: The bootcamp lasts for 8 weeks, with live sessions held every Saturday.
+
+**Q: Is the lecture material live or recorded?**  
+A: The bootcamp features live sessions with real-time instruction and Q&A.
+
+**Q: What hardware do I need?**  
+A: Participants will need a physical toy car for deployment, which is to be purchased separately.
+
+**Q: Will I receive a certificate upon completion?**  
+A: Yes, participants will receive a certificate upon successful completion of the bootcamp.
+
+**Q: How much time should I dedicate per week?**  
+A: Students should plan to dedicate time for live sessions, assignments, and project work each week.
+
+**Q: What projects will I build during the bootcamp?**  
+A: Participants will build a complete vision-language-action pipeline and deploy it on a toy car.
+
+**Q: What is the mode of communication during the bootcamp?**  
+A: Communication will primarily occur through live sessions, with additional support available in the community forum.

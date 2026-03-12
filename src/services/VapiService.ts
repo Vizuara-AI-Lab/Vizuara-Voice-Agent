@@ -74,7 +74,27 @@ export class VapiService {
         config.onStatusChange?.("error", error?.message || "VAPI error");
       });
 
-      const call = await this.vapi.start(config.vapiAssistantId);
+      const call = await this.vapi.start(config.vapiAssistantId, {
+        transcriber: {
+          provider: "deepgram",
+          model: "nova-2",
+          language: "en",
+          endpointing: 400,
+        },
+        // Stop speaking: react quickly when user interrupts (VAD-based, 0 words)
+        // but require 0.3s of voice activity to avoid false triggers from noise
+        stopSpeakingPlan: {
+          numWords: 0,
+          voiceSeconds: 0.3,
+          backoffSeconds: 1.0,
+        },
+        // Start speaking: wait a bit after user stops to capture full utterance
+        startSpeakingPlan: {
+          waitSeconds: 0.6,
+          smartEndpointingEnabled: true,
+        },
+        backgroundDenoisingEnabled: true,
+      } as any);
       this.callId = (call as any)?.id || null;
     } catch (err: any) {
       console.error("[VAPI] Failed to connect:", err);

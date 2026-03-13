@@ -1002,11 +1002,6 @@ A: Renesas Electronics, Ramco Systems, and Shree Maruti are among the enterprise
 **Q: What is DynaRoute?**
 A: DynaRoute is Vizuara's intelligent LLM query routing product that cuts LLM API costs by 50–70% by automatically routing each query to the optimal model based on complexity. It supports multiple cloud providers (GCP, AWS, Azure) and is a drop-in replacement for the OpenAI API. Try it free at dynaroute.vizuara.ai with 50,000 tokens.
 ---
-*Last updated: March 2026*
-*Source: vizuara.ai and associated subdomains*
-
-
----
 
 ## VLA Models & World Models for Robotics Bootcamp — Bootcamp (8 weeks)
 
@@ -1182,5 +1177,9 @@ A: Students should plan to dedicate time for live sessions, assignments, and pro
 **Q: What projects will I build during the bootcamp?**  
 A: Participants will build a complete vision-language-action pipeline and deploy it on a toy car.
 
-**Q: What is the mode of communication during the bootcamp?**  
+**Q: What is the mode of communication during the bootcamp?**
 A: Communication will primarily occur through live sessions, with additional support available in the community forum.
+
+---
+*Last updated: March 2026*
+*Source: vizuara.ai and associated subdomains*

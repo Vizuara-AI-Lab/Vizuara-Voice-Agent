@@ -53,7 +53,39 @@ Vizuara AI Labs was co-founded by three PhD-holding researchers from top global 
 - **Clara** — Personalized teaching style
 - **Ethan** — Personalized teaching style
 - **Vidya** — Personalized teaching style
-**Pricing:** Free to use with Vizuara courses (check [vizz.vizuara.ai/pricing](https://vizz.vizuara.ai/pricing) for details)
+**Pricing:** Vizz AI has three subscription tiers (see [vizz.vizuara.ai/pricing](https://vizz.vizuara.ai/pricing)):
+
+**Free — $0**
+Perfect for trying out the AI tutor.
+- 3-day trial access
+- Vision Query
+- Realtime voice interactions
+- Realtime transcripts
+- Smart timestamp navigation
+- Multi-language support
+- ✗ Adaptive tutor personality
+- ✗ Interactive assignments
+- ✗ Access to lecture notes
+- ✗ Memory feature
+
+**Pro (Monthly) — $10/month (≈ ₹899 INR)**
+Unlimited access for serious learners.
+- Unlimited AI tutor access
+- Vision Query
+- Realtime voice interactions
+- Realtime transcripts
+- Smart timestamp navigation
+- Multi-language support
+- Adaptive tutor personality
+- Interactive assignments
+- Access to lecture notes
+- Memory feature (Coming Soon)
+
+**Pro (Annual) — ₹8,999/year (≈ $100 USD)**
+Best value — save ₹989 compared to monthly billing. Unlimited access for serious learners.
+- All features of Pro Monthly
+- Memory feature (Coming Soon)
+
 **Trusted By Students From:** MIT, Stanford, Caltech, Princeton, UC Berkeley, and professionals from Apple, Google, Microsoft, Netflix, Meta
 **Philosophy:** "Personalized education powered by AI is the bridge between what students know and what they're capable of achieving."
 ### 3.2 Vizuara AI Pods — Short-Format AI Mastery Platform

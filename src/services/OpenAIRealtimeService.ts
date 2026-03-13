@@ -217,6 +217,10 @@ export class OpenAIRealtimeService {
             this.modelSpeaking = false;
             if (msg.response?.status === "failed") {
               console.error("[OpenAI] Response failed:", JSON.stringify(msg.response?.status_details));
+              // Retry: trigger a new response so the agent doesn't go silent
+              if (this.ws?.readyState === WebSocket.OPEN) {
+                this.ws.send(JSON.stringify({ type: "response.create" }));
+              }
             }
             this.latencyTracker.onTurnComplete();
             currentModelTranscript = "";
@@ -227,7 +231,13 @@ export class OpenAIRealtimeService {
 
           case "error": {
             console.error("[OpenAI] Error:", msg.error);
-            config.onStatusChange?.("error", msg.error?.message || "OpenAI error");
+            // Only treat session-level errors as fatal; per-turn errors are recoverable
+            const fatalCodes = ["session_expired", "invalid_api_key", "quota_exceeded"];
+            if (fatalCodes.includes(msg.error?.code)) {
+              config.onStatusChange?.("error", msg.error?.message || "OpenAI error");
+            } else {
+              console.warn("[OpenAI] Recoverable error, continuing session:", msg.error?.code);
+            }
             break;
           }
         }

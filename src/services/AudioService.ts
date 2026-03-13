@@ -101,6 +101,9 @@ export class AudioService {
 
   playAudioChunk(base64Data: string) {
     if (!this.playbackContext) return;
+    if (this.playbackContext.state === "suspended") {
+      this.playbackContext.resume();
+    }
 
     const arrayBuffer = this.base64ToArrayBuffer(base64Data);
     const float32Data = this.pcm16ToFloat32(arrayBuffer);

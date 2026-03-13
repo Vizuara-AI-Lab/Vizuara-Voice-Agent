@@ -41,6 +41,9 @@ You are a friendly Vizuara AI Labs assistant helping callers find the right AI a
 - CV Research Bootcamp: cvresearchbootcamp.vizuara.ai
 - AI Agents Bootcamp: agentsbootcamp.vizuara.ai
 - Context Engineering Workshop: context-engineering.vizuara.ai
+- VLA & World Models Bootcamp: vla.vizuara.ai
+- Modern Software Developer Bootcamp: modern-software-dev.vizuara.ai
+- VLA for Autonomous Driving: robotlearningmastery.vizuara.ai
 
 ## Knowledge Base
 ${KNOWLEDGE_BASE}`;
@@ -178,6 +181,8 @@ const NEGATIVE_REASONS = [
 export default function VoiceWidget({ serverUrl = "" }: { serverUrl?: string }) {
   const [callState, setCallState] = useState<"idle" | "connecting" | "connected" | "feedback">("idle");
   const [transcription, setTranscription] = useState<{ text: string; isUser: boolean }[]>([]);
+  // Unsliced transcript for course link detection (transcription is capped at 6 for UI)
+  const [fullTranscription, setFullTranscription] = useState<{ text: string; isUser: boolean }[]>([]);
   const [volume, setVolume] = useState(0);
   const [emailCopied, setEmailCopied] = useState(false);
   const [emailExpanded, setEmailExpanded] = useState(false);
@@ -211,6 +216,8 @@ export default function VoiceWidget({ serverUrl = "" }: { serverUrl?: string }) 
   const fullTranscriptRef = React.useRef<{ text: string; isUser: boolean; timestamp: string }[]>([]);
   const callStartTimeRef = React.useRef<string>("");
   const callRecordIdRef = React.useRef<string | null>(null);
+  // Resolves when the call record POST completes and callRecordIdRef is populated
+  const callRecordReadyRef = React.useRef<{ promise: Promise<void>; resolve: () => void } | null>(null);
 
   const getOpenAIService = () => {
     if (!openaiServiceRef.current) openaiServiceRef.current = new OpenAIRealtimeService();
@@ -288,10 +295,13 @@ export default function VoiceWidget({ serverUrl = "" }: { serverUrl?: string }) 
       if (data.id) callRecordIdRef.current = data.id;
     } catch (e) {
       console.warn("[VoiceWidget] Failed to submit call record:", e);
+    } finally {
+      callRecordReadyRef.current?.resolve();
     }
   };
 
   const submitFeedback = async (feedback: { rating: "positive" | "negative"; reasons?: string[]; comment?: string }) => {
+    if (callRecordReadyRef.current) await callRecordReadyRef.current.promise;
     const id = callRecordIdRef.current;
     if (!id) return;
     try {
@@ -314,6 +324,7 @@ export default function VoiceWidget({ serverUrl = "" }: { serverUrl?: string }) 
     setTimeout(() => {
       setCallState("idle");
       setTranscription([]);
+      setFullTranscription([]);
       resetFeedbackState();
     }, 1500);
   };
@@ -334,6 +345,7 @@ export default function VoiceWidget({ serverUrl = "" }: { serverUrl?: string }) 
     setTimeout(() => {
       setCallState("idle");
       setTranscription([]);
+      setFullTranscription([]);
       resetFeedbackState();
     }, 1500);
   };
@@ -341,6 +353,7 @@ export default function VoiceWidget({ serverUrl = "" }: { serverUrl?: string }) 
   const handleFeedbackSkip = () => {
     setCallState("idle");
     setTranscription([]);
+    setFullTranscription([]);
     resetFeedbackState();
   };
 
@@ -360,6 +373,7 @@ export default function VoiceWidget({ serverUrl = "" }: { serverUrl?: string }) 
     } else {
       setCallState("idle");
       setTranscription([]);
+      setFullTranscription([]);
     }
   };
 
@@ -367,10 +381,13 @@ export default function VoiceWidget({ serverUrl = "" }: { serverUrl?: string }) 
     endingRef.current = false;
     setCallState("connecting");
     setTranscription([]);
+    setFullTranscription([]);
     setTimeWarning(false);
     fullTranscriptRef.current = [];
     callStartTimeRef.current = new Date().toISOString();
     callRecordIdRef.current = null;
+    let resolveFn!: () => void;
+    callRecordReadyRef.current = { promise: new Promise<void>((r) => { resolveFn = r; }), resolve: resolveFn };
     resetFeedbackState();
 
     const config = await fetchConfig();
@@ -403,6 +420,7 @@ export default function VoiceWidget({ serverUrl = "" }: { serverUrl?: string }) 
           onTranscription: (text, isUser) => {
             fullTranscriptRef.current.push({ text, isUser, timestamp: new Date().toISOString() });
             setTranscription((prev) => [...prev, { text, isUser }].slice(-6));
+            setFullTranscription((prev) => [...prev, { text, isUser }]);
           },
           onVolumeChange: (v) => setVolume(v),
         });
@@ -436,6 +454,7 @@ export default function VoiceWidget({ serverUrl = "" }: { serverUrl?: string }) 
           onTranscription: (text, isUser) => {
             fullTranscriptRef.current.push({ text, isUser, timestamp: new Date().toISOString() });
             setTranscription((prev) => [...prev, { text, isUser }].slice(-6));
+            setFullTranscription((prev) => [...prev, { text, isUser }]);
           },
           onVolumeChange: (v) => setVolume(v),
           onTimeWarning: () => {
@@ -510,15 +529,15 @@ export default function VoiceWidget({ serverUrl = "" }: { serverUrl?: string }) 
 
   // Derive suggested course links
   const suggestedLinks = useMemo(() => {
-    if (transcription.length === 0 || courseLinks.length === 0) return [];
-    const detected = detectCourseLinks(transcription, courseLinks);
+    if (fullTranscription.length === 0 || courseLinks.length === 0) return [];
+    const detected = detectCourseLinks(fullTranscription, courseLinks);
     if (detected.length === 0) return [];
     const askedForLink = userAsksForLink(transcription);
-    const aiMentionedCourse = transcription.some(
+    const aiMentionedCourse = fullTranscription.some(
       (t) => !t.isUser && detected.some((c) => c.keywords.some((k) => t.text.toLowerCase().includes(k)))
     );
     return askedForLink || aiMentionedCourse ? detected : [];
-  }, [transcription, courseLinks]);
+  }, [transcription, fullTranscription, courseLinks]);
 
   // Detect email draft
   const emailDraft = useMemo(() => detectEmailDraft(transcription), [transcription]);

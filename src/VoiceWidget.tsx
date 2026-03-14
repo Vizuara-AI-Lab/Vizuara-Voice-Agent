@@ -277,6 +277,9 @@ export default function VoiceWidget({ serverUrl = "" }: { serverUrl?: string }) 
   const submitCallRecord = async () => {
     const config = configRef.current;
     const vapiCallId = config.provider === "vapi" ? getVapiService().getCallId() : null;
+    const durationSeconds = Math.round(
+      (Date.now() - new Date(callStartTimeRef.current).getTime()) / 1000
+    );
 
     try {
       const res = await fetch(`${serverUrl}/api/call-record`, {
@@ -286,7 +289,7 @@ export default function VoiceWidget({ serverUrl = "" }: { serverUrl?: string }) 
           transcript: fullTranscriptRef.current,
           feedback: null,
           provider: config.provider,
-          durationSeconds: elapsed,
+          durationSeconds,
           vapiCallId,
           startTime: callStartTimeRef.current,
         }),

@@ -11,7 +11,10 @@ export class VapiService {
   }
 
   async initializeAudio() {
-    // VAPI handles audio internally — no-op
+    // Explicitly probe mic access so a denied/missing permission surfaces
+    // as a clear error before VAPI silently starts without user audio.
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    stream.getTracks().forEach((t) => t.stop());
   }
 
   async connect(config: {

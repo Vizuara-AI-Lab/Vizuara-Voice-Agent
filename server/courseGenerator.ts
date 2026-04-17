@@ -1,6 +1,9 @@
 import OpenAI from "openai";
-import { YoutubeTranscript } from "youtube-transcript";
+import { createRequire } from "module";
 import puppeteer from "puppeteer-core";
+
+const _require = createRequire(import.meta.url);
+const { YoutubeTranscript } = _require("youtube-transcript/dist/youtube-transcript.common.js");
 
 export async function fetchYouTubeTranscript(url: string): Promise<{ transcript: string; title: string }> {
   const videoId = extractVideoId(url);

@@ -44,6 +44,7 @@ You are a friendly Vizuara AI Labs assistant helping callers find the right AI a
 - VLA & World Models Bootcamp: vla.vizuara.ai
 - Modern Software Developer Bootcamp: modern-software-dev.vizuara.ai
 - VLA for Autonomous Driving: robotlearningmastery.vizuara.ai
+- Inference Engineering Workshop: inference.vizuara.ai
 
 ## Knowledge Base
 ${KNOWLEDGE_BASE}`;

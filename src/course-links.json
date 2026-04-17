@@ -20,5 +20,6 @@
   { "name": "High School AI Research", "url": "https://ai-highschool-research.vizuara.ai/", "keywords": ["high school", "highschool research"] },
   { "name": "VLA & World Models Bootcamp", "url": "https://vla.vizuara.ai/", "keywords": ["vla model", "world model", "vision language action", "vla bootcamp"] },
   { "name": "Modern Software Developer Bootcamp", "url": "https://modern-software-dev.vizuara.ai/", "keywords": ["modern software developer", "software developer bootcamp", "vibe coding", "coding agent", "ai-powered development"] },
-  { "name": "VLA for Autonomous Driving", "url": "https://robotlearningmastery.vizuara.ai/", "keywords": ["autonomous driving", "self-driving", "vla driving", "toy car", "autonomous driving bootcamp"] }
+  { "name": "VLA for Autonomous Driving", "url": "https://robotlearningmastery.vizuara.ai/", "keywords": ["autonomous driving", "self-driving", "vla driving", "toy car", "autonomous driving bootcamp"] },
+  { "name": "Inference Engineering Workshop", "url": "https://inference.vizuara.ai/", "keywords": ["inference engineering", "inference workshop", "llm inference", "inference optimization"] }
 ]

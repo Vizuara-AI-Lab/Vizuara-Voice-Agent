@@ -1,12 +1,23 @@
 import OpenAI from "openai";
-import { execFile } from "child_process";
+import { execFile, exec } from "child_process";
 import { promisify } from "util";
 import puppeteer from "puppeteer-core";
+import fs from "fs";
 
 const execFileAsync = promisify(execFile);
+const execAsync = promisify(exec);
 
 // Path to Python with youtube-transcript-api installed
 const PYTHON_PATH = "/tmp/yt-venv/bin/python3";
+
+async function ensurePythonVenv(): Promise<void> {
+  if (fs.existsSync(PYTHON_PATH)) return;
+  console.log("[Transcript] Setting up Python venv...");
+  await execAsync("python3 -m venv /tmp/yt-venv && /tmp/yt-venv/bin/pip install --quiet youtube-transcript-api", {
+    timeout: 120000,
+  });
+  console.log("[Transcript] Python venv ready.");
+}
 
 const TRANSCRIPT_SCRIPT = `
 import sys, json
@@ -26,6 +37,7 @@ export async function fetchYouTubeTranscript(url: string): Promise<{ transcript:
 
   // Use Python youtube-transcript-api (reliable, handles YouTube's anti-bot measures)
   try {
+    await ensurePythonVenv();
     const { stdout, stderr } = await execFileAsync(PYTHON_PATH, ["-c", TRANSCRIPT_SCRIPT, videoId], {
       timeout: 30000,
     });
@@ -50,9 +62,7 @@ export async function fetchYouTubeTranscript(url: string): Promise<{ transcript:
     return { transcript: result.transcript, title };
   } catch (err: any) {
     if (err.message?.includes("ENOENT") || err.message?.includes("spawn")) {
-      throw new Error(
-        "Python youtube-transcript-api not found. Run: python3 -m venv /tmp/yt-venv && /tmp/yt-venv/bin/pip install youtube-transcript-api"
-      );
+      throw new Error("Python not available on server. Ensure python3 is installed.");
     }
     throw new Error(`Transcript extraction failed: ${err.stderr || err.message}`);
   }

@@ -1,52 +1,15 @@
 import OpenAI from "openai";
-import { execFile, exec } from "child_process";
-import { promisify } from "util";
+import { YoutubeTranscript } from "youtube-transcript";
 import puppeteer from "puppeteer-core";
-import fs from "fs";
-
-const execFileAsync = promisify(execFile);
-const execAsync = promisify(exec);
-
-// Path to Python with youtube-transcript-api installed
-const PYTHON_PATH = "/tmp/yt-venv/bin/python3";
-
-async function ensurePythonVenv(): Promise<void> {
-  if (fs.existsSync(PYTHON_PATH)) return;
-  console.log("[Transcript] Setting up Python venv...");
-  await execAsync("python3 -m venv /tmp/yt-venv && /tmp/yt-venv/bin/pip install --quiet youtube-transcript-api", {
-    timeout: 120000,
-  });
-  console.log("[Transcript] Python venv ready.");
-}
-
-const TRANSCRIPT_SCRIPT = `
-import sys, json
-from youtube_transcript_api import YouTubeTranscriptApi
-video_id = sys.argv[1]
-ytt = YouTubeTranscriptApi()
-t = ytt.fetch(video_id)
-text = " ".join([s.text for s in t.snippets])
-# Get title from snippets metadata if available
-result = {"transcript": text, "segments": len(t.snippets)}
-print(json.dumps(result))
-`;
 
 export async function fetchYouTubeTranscript(url: string): Promise<{ transcript: string; title: string }> {
   const videoId = extractVideoId(url);
   if (!videoId) throw new Error("Invalid YouTube URL");
 
-  // Use Python youtube-transcript-api (reliable, handles YouTube's anti-bot measures)
   try {
-    await ensurePythonVenv();
-    const { stdout, stderr } = await execFileAsync(PYTHON_PATH, ["-c", TRANSCRIPT_SCRIPT, videoId], {
-      timeout: 30000,
-    });
-    if (stderr) console.warn("[Transcript] Python stderr:", stderr);
-    const result = JSON.parse(stdout.trim());
-
-    if (!result.transcript) {
-      throw new Error("Transcript was empty");
-    }
+    const segments = await YoutubeTranscript.fetchTranscript(videoId);
+    if (!segments?.length) throw new Error("Transcript was empty");
+    const transcript = segments.map((s) => s.text).join(" ");
 
     // Fetch title from YouTube page (lightweight)
     let title = `Video ${videoId}`;
@@ -59,12 +22,9 @@ export async function fetchYouTubeTranscript(url: string): Promise<{ transcript:
       if (titleMatch) title = titleMatch[1].replace(" - YouTube", "").trim();
     } catch {}
 
-    return { transcript: result.transcript, title };
+    return { transcript, title };
   } catch (err: any) {
-    if (err.message?.includes("ENOENT") || err.message?.includes("spawn")) {
-      throw new Error("Python not available on server. Ensure python3 is installed.");
-    }
-    throw new Error(`Transcript extraction failed: ${err.stderr || err.message}`);
+    throw new Error(`Transcript extraction failed: ${err.message}`);
   }
 }
 
